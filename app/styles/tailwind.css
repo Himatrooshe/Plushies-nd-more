@@ -1,6 +1,41 @@
 /**
- * Configure Tailwind v4 in this file using CSS variables and directives:
+ * Tailwind CSS v4 Configuration
  * https://tailwindcss.com/docs/v4-beta#css-first-configuration
  */
 
 @import 'tailwindcss';
+
+/* Custom CSS Variables for your design system */
+@theme {
+  --color-plush-pink: #ff7380;
+  --color-plush-red: #c0424e;
+  --color-plush-light-pink: #ff99a2;
+  --color-plush-bg-pink: #ffdddd;
+  
+  --font-family-nunito: 'Nunito', sans-serif;
+  --font-family-caveat-brush: 'Caveat Brush', cursive;
+}
+
+/* Custom utility classes */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .bg-linear-to-r {
+    background: linear-gradient(to right, var(--tw-gradient-stops));
+  }
+  
+  .bg-linear-to-l {
+    background: linear-gradient(to left, var(--tw-gradient-stops));
+  }
+  
+  .bg-linear-to-br {
+    background: linear-gradient(to bottom right, var(--tw-gradient-stops));
+  }
+}

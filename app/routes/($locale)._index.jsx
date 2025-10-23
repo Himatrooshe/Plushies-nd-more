@@ -2,6 +2,14 @@ import {Await, useLoaderData, Link} from 'react-router';
 import {Suspense} from 'react';
 import {Image} from '@shopify/hydrogen';
 import {ProductItem} from '~/components/ProductItem';
+import HeroSection from '~/components/HeroSection';
+import AboutSection from '~/components/AboutSection';
+import CategoriesSection from '~/components/CategoriesSection';
+import NewArrivalsSection from '~/components/NewArrivalsSection';
+import MostLovedSection from '~/components/MostLovedSection';
+import SpecialPricesSection from '~/components/SpecialPricesSection';
+import TestimonialsSection from '~/components/TestimonialsSection';
+import CTASection from '~/components/CTASection';
 
 /**
  * @type {Route.MetaFunction}
@@ -64,8 +72,26 @@ export default function Homepage() {
   const data = useLoaderData();
   return (
     <div className="home">
-      <FeaturedCollection collection={data.featuredCollection} />
-      <RecommendedProducts products={data.recommendedProducts} />
+      <HeroSection />
+      <AboutSection />
+      <CategoriesSection />
+      <Suspense fallback={<div>Loading products...</div>}>
+        <Await resolve={data.recommendedProducts}>
+          {(response) => {
+            const products = response?.products?.nodes || [];
+            console.log('Landing page products:', products);
+            return (
+              <>
+                <NewArrivalsSection products={products} />
+                <MostLovedSection products={products} />
+                <SpecialPricesSection products={products} />
+              </>
+            );
+          }}
+        </Await>
+      </Suspense>
+      <TestimonialsSection />
+      <CTASection />
     </div>
   );
 }
@@ -148,8 +174,13 @@ const RECOMMENDED_PRODUCTS_QUERY = `#graphql
     id
     title
     handle
+    availableForSale
     priceRange {
       minVariantPrice {
+        amount
+        currencyCode
+      }
+      maxVariantPrice {
         amount
         currencyCode
       }
@@ -160,6 +191,20 @@ const RECOMMENDED_PRODUCTS_QUERY = `#graphql
       altText
       width
       height
+    }
+    variants(first: 1) {
+      nodes {
+        id
+        availableForSale
+        price {
+          amount
+          currencyCode
+        }
+        compareAtPrice {
+          amount
+          currencyCode
+        }
+      }
     }
   }
   query RecommendedProducts ($country: CountryCode, $language: LanguageCode)

@@ -1,74 +1,37 @@
-import {useRef, useEffect} from 'react';
-import {Form} from 'react-router';
+import {useState} from 'react';
+import {useNavigate} from 'react-router';
 
-/**
- * Search form component that sends search requests to the `/search` route.
- * @example
- * ```tsx
- * <SearchForm>
- *  {({inputRef}) => (
- *    <>
- *      <input
- *        ref={inputRef}
- *        type="search"
- *        defaultValue={term}
- *        name="q"
- *        placeholder="Search…"
- *      />
- *      <button type="submit">Search</button>
- *   </>
- *  )}
- *  </SearchForm>
- * @param {SearchFormProps}
- */
-export function SearchForm({children, ...props}) {
-  const inputRef = useRef(null);
+export function SearchForm({className = ''}) {
+  const [query, setQuery] = useState('');
+  const navigate = useNavigate();
 
-  useFocusOnCmdK(inputRef);
-
-  if (typeof children !== 'function') {
-    return null;
-  }
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (query.trim()) {
+      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+    }
+  };
 
   return (
-    <Form method="get" {...props}>
-      {children({inputRef})}
-    </Form>
+    <form onSubmit={handleSubmit} className={`search-form ${className}`}>
+      <div className="relative">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search products..."
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#ff7380] pr-10"
+        />
+        <button
+          type="submit"
+          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/>
+            <path d="M21 21L16.65 16.65" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        </button>
+      </div>
+    </form>
   );
 }
-
-/**
- * Focuses the input when cmd+k is pressed
- * @param {React.RefObject<HTMLInputElement>} inputRef
- */
-function useFocusOnCmdK(inputRef) {
-  // focus the input when cmd+k is pressed
-  useEffect(() => {
-    function handleKeyDown(event) {
-      if (event.key === 'k' && event.metaKey) {
-        event.preventDefault();
-        inputRef.current?.focus();
-      }
-
-      if (event.key === 'Escape') {
-        inputRef.current?.blur();
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [inputRef]);
-}
-
-/**
- * @typedef {Omit<FormProps, 'children'> & {
- *   children: (args: {
- *     inputRef: React.RefObject<HTMLInputElement>;
- *   }) => React.ReactNode;
- * }} SearchFormProps
- */
-
-/** @typedef {import('react-router').FormProps} FormProps */
