@@ -163,7 +163,7 @@ export function Footer({footer: footerPromise, header, publicStoreDomain}) {
                         to="/policies/terms-of-service"
                         className="text-gray-600 hover:text-[#c0424e] transition-colors text-sm"
                       >
-                        Term of Use
+                        Term of Use okay
                       </Link>
                     </li> */}
                     <li>
