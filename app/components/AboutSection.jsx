@@ -25,7 +25,7 @@ export default function AboutSection() {
               </h2>
             </div>
 
-            {/* Description */}
+            {/* Description test*/}
             <div className="text-center lg:text-left px-4 lg:px-0">
               <p className="text-gray-700 text-sm sm:text-base md:text-lg lg:text-xl leading-relaxed max-w-lg mx-auto lg:mx-0">
                 We Believe Happiness Comes In The Form Of A Plush Hug. Our
