@@ -1,5 +1,7 @@
 import {useLoaderData} from 'react-router';
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
+import ContactPage from '~/components/ContactPage';
+import ShippingPolicyPage from '~/components/ShippingPolicyPage';
 
 /**
  * @type {Route.MetaFunction}
@@ -64,6 +66,16 @@ function loadDeferredData({context}) {
 export default function Page() {
   /** @type {LoaderReturnData} */
   const {page} = useLoaderData();
+
+  // Check if it's the contact page
+  if (page.handle === 'contact') {
+    return <ContactPage />;
+  }
+
+  // Check if it's the shipping policy page
+  if (page.handle === 'shipping-policy' || page.handle === 'shipping') {
+    return <ShippingPolicyPage />;
+  }
 
   return (
     <div className="page">

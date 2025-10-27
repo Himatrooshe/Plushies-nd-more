@@ -11,20 +11,25 @@ export function CartSummary({cart, layout}) {
 
   return (
     <div aria-labelledby="cart-summary" className={className}>
-      <h4>Totals</h4>
-      <dl className="cart-subtotal">
-        <dt>Subtotal</dt>
-        <dd>
-          {cart?.cost?.subtotalAmount?.amount ? (
-            <Money data={cart?.cost?.subtotalAmount} />
-          ) : (
-            '-'
-          )}
-        </dd>
-      </dl>
-      <CartDiscounts discountCodes={cart?.discountCodes} />
-      <CartGiftCard giftCardCodes={cart?.appliedGiftCards} />
-      <CartCheckoutActions checkoutUrl={cart?.checkoutUrl} />
+      <div className="cart-summary-inner">
+        <h4 className="cart-summary-title flex items-center gap-2">
+          <span className="text-2xl">💕</span>
+          <span>Order Summary</span>
+        </h4>
+        <dl className="cart-subtotal from-pink-50 to-purple-50 rounded-xl p-4">
+          <dt className="text-sm text-gray-600">Subtotal</dt>
+          <dd className="text-2xl font-bold text-[#c0424e] font-cute">
+            {cart?.cost?.subtotalAmount?.amount ? (
+              <Money data={cart?.cost?.subtotalAmount} />
+            ) : (
+              '-'
+            )}
+          </dd>
+        </dl>
+        <CartDiscounts discountCodes={cart?.discountCodes} />
+        <CartGiftCard giftCardCodes={cart?.appliedGiftCards} />
+        <CartCheckoutActions checkoutUrl={cart?.checkoutUrl} />
+      </div>
     </div>
   );
 }
@@ -36,11 +41,14 @@ function CartCheckoutActions({checkoutUrl}) {
   if (!checkoutUrl) return null;
 
   return (
-    <div>
-      <a href={checkoutUrl} target="_self">
-        <p>Continue to Checkout &rarr;</p>
+    <div className="cart-checkout-actions">
+      <a href={checkoutUrl} target="_self" className="checkout-btn flex items-center justify-center gap-3">
+        <span className="text-lg">✨</span>
+        <span>Checkout</span>
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
       </a>
-      <br />
     </div>
   );
 }

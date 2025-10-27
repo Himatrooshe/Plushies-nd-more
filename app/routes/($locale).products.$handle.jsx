@@ -106,28 +106,103 @@ export default function Product() {
   const {title, descriptionHtml} = product;
 
   return (
-    <div className="product">
-      <ProductImage image={selectedVariant?.image} />
-      <div className="product-main">
-        <h1>{title}</h1>
-        <ProductPrice
-          price={selectedVariant?.price}
-          compareAtPrice={selectedVariant?.compareAtPrice}
-        />
-        <br />
-        <ProductForm
-          productOptions={productOptions}
-          selectedVariant={selectedVariant}
-        />
-        <br />
-        <br />
-        <p>
-          <strong>Description</strong>
-        </p>
-        <br />
-        <div dangerouslySetInnerHTML={{__html: descriptionHtml}} />
-        <br />
+    <div className="min-h-screen bg-linear-to-b from-pink-50 to-white pt-24 sm:pt-28 md:pt-32">
+      {/* Decorative Top Elements */}
+      <div className="absolute top-0 left-0 w-full overflow-hidden pointer-events-none">
+        <div className="absolute top-10 left-10 w-20 h-20 bg-pink-200 rounded-full opacity-20 blur-2xl"></div>
+        <div className="absolute top-20 right-20 w-32 h-32 bg-purple-200 rounded-full opacity-20 blur-2xl"></div>
       </div>
+
+      {/* Product Container */}
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
+          {/* Product Image */}
+          <div className="product-image-wrapper relative group">
+            {/* Floating badges */}
+            <div className="absolute top-4 left-4 z-10">
+              <div className="bg-linear-to-r from-pink-500 to-rose-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg flex items-center gap-2 animate-bounce">
+                <span>✨</span>
+                <span>New Arrival</span>
+              </div>
+            </div>
+            <div className="absolute top-4 right-4 z-10">
+              <div className="bg-white text-pink-600 px-4 py-2 rounded-full text-sm font-bold shadow-lg flex items-center gap-2 border-2 border-pink-200">
+                <span>💝</span>
+                <span>Best Seller</span>
+              </div>
+            </div>
+            
+            {/* Image with cute border */}
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl border-8 border-white bg-linear-to-br from-pink-100 to-purple-100 p-2">
+              <ProductImage image={selectedVariant?.image} />
+            </div>
+          </div>
+
+          {/* Product Info */}
+          <div className="product-main flex flex-col">
+            {/* Cute Emoji Title */}
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-4xl sm:text-5xl">🎀</span>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900">
+                {title}
+              </h1>
+            </div>
+
+            {/* Product Price with cute styling */}
+            <div className="mb-6 bg-linear-to-r from-pink-50 to-purple-50 rounded-2xl p-4 border-2 border-pink-200">
+              <ProductPrice
+                price={selectedVariant?.price}
+                compareAtPrice={selectedVariant?.compareAtPrice}
+              />
+            </div>
+
+            {/* Product Form (Variants & Add to Cart) */}
+            <div className="mb-8">
+              <ProductForm
+                productOptions={productOptions}
+                selectedVariant={selectedVariant}
+              />
+            </div>
+
+            {/* Cute Divider */}
+            <div className="flex items-center gap-4 my-8">
+              <div className="flex-1 h-1 bg-linear-to-r from-pink-300 to-purple-300 rounded-full"></div>
+              <span className="text-2xl">💕</span>
+              <div className="flex-1 h-1 bg-linear-to-r from-purple-300 to-pink-300 rounded-full"></div>
+            </div>
+
+            {/* Product Description with cute styling */}
+            <div className="product-description bg-white rounded-3xl p-6 sm:p-8 shadow-lg border-2 border-pink-100">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-2xl">📝</span>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                  Description
+                </h2>
+              </div>
+              <div 
+                className="prose prose-sm sm:prose-base max-w-none text-gray-700 leading-relaxed"
+                dangerouslySetInnerHTML={{__html: descriptionHtml}} 
+              />
+            </div>
+
+            {/* Cute Trust Badges */}
+            <div className="mt-8 grid grid-cols-2 gap-4">
+                                <div className="bg-linear-to-br from-pink-50 to-rose-50 rounded-2xl p-4 border-2 border-pink-200 text-center">
+                <div className="text-3xl mb-2">🚚</div>
+                <div className="text-xs font-bold text-gray-700">Free Shipping</div>
+                <div className="text-[10px] text-gray-500">Over $35</div>
+              </div>
+                                <div className="bg-linear-to-br from-purple-50 to-pink-50 rounded-2xl p-4 border-2 border-purple-200 text-center">
+                <div className="text-3xl mb-2">💝</div>
+                <div className="text-xs font-bold text-gray-700">Easy Returns</div>
+                <div className="text-[10px] text-gray-500">30 Days</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Analytics */}
       <Analytics.ProductView
         data={{
           products: [

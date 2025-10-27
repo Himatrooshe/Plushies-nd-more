@@ -1,4 +1,7 @@
 import {Link, useLoaderData} from 'react-router';
+import PrivacyPolicyPage from '~/components/PrivacyPolicyPage';
+import ReturnPolicyPage from '~/components/ReturnPolicyPage';
+import ShippingPolicyPage from '~/components/ShippingPolicyPage';
 
 /**
  * @type {Route.MetaFunction}
@@ -42,6 +45,21 @@ export async function loader({params, context}) {
 export default function Policy() {
   /** @type {LoaderReturnData} */
   const {policy} = useLoaderData();
+
+  // Check if it's a privacy policy
+  if (policy.handle === 'privacy-policy') {
+    return <PrivacyPolicyPage />;
+  }
+
+  // Check if it's a return/refund policy
+  if (policy.handle === 'refund-policy' || policy.handle === 'return-policy') {
+    return <ReturnPolicyPage />;
+  }
+
+  // Check if it's a shipping policy
+  if (policy.handle === 'shipping-policy') {
+    return <ShippingPolicyPage />;
+  }
 
   return (
     <div className="policy">

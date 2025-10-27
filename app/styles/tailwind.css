@@ -4,3 +4,15 @@
  */
 
 @import 'tailwindcss';
+
+@layer base {
+  * {
+    font-family: 'Nunito', sans-serif;
+  }
+}
+
+@layer utilities {
+  .font-cute {
+    font-family: 'Caveat Brush', cursive;
+  }
+}

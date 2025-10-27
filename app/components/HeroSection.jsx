@@ -1,0 +1,192 @@
+import {Image} from '@shopify/hydrogen';
+import {Link} from 'react-router';
+import Button from './Button';
+import {useState, useEffect} from 'react';
+import heroBg from '~/assets/hero-bg.svg?url';
+import heroCute from '~/assets/hero-cute.png?url';
+import pluse1 from '~/assets/pluse-1.png?url';
+import plush2 from '~/assets/plush-2.png?url';
+import plush3 from '~/assets/plush-3.png?url';
+import plush4 from '~/assets/plush-4.png?url';
+
+// Product Image Slider Component
+function ProductImageSlider() {
+  const [offset, setOffset] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  // Product images data
+  const products = [
+    {src: pluse1, alt: 'Cute Dinosaur Plush', name: 'Dino Buddy'},
+    {src: plush2, alt: 'Adorable Sheep Plush', name: 'Sheep Friend'},
+    {src: plush3, alt: 'Sweet Fox Plush', name: 'Fox Cutie'},
+    {src: plush4, alt: 'Cuddly Panda Plush', name: 'Panda Hug'},
+    {src: pluse1, alt: 'Cute Dinosaur Plush', name: 'Dino Buddy'},
+    {src: plush2, alt: 'Adorable Sheep Plush', name: 'Sheep Friend'},
+  ];
+
+  // Continuous smooth scrolling effect
+  useEffect(() => {
+    if (isPaused) return;
+
+    const scrollSpeed = 0.3; // Slower than testimonials for better viewing
+    let animationFrameId;
+
+    const animate = () => {
+      setOffset((prevOffset) => {
+        const newOffset = prevOffset + scrollSpeed;
+        const cardWidth = 320; // Each product card width
+        const totalWidth = products.length * cardWidth;
+
+        if (newOffset >= totalWidth) {
+          return 0;
+        }
+        return newOffset;
+      });
+
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    animationFrameId = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [isPaused, products.length]);
+
+  // Triple the products for seamless infinite loop
+  const infiniteProducts = [...products, ...products, ...products];
+
+  return (
+    <div className="relative w-full px-4 sm:px-6 md:px-8">
+      {/* Product Carousel - Continuous Scrolling */}
+      <div
+        className="relative overflow-hidden"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
+        <div
+          className="flex gap-4 sm:gap-6"
+          style={{
+            transform: `translateX(-${offset}px)`,
+            transition: 'none',
+            willChange: 'transform',
+          }}
+        >
+          {infiniteProducts.map((product, index) => (
+            <div key={`${product.name}-${index}`} className="shrink-0 w-[240px] sm:w-[280px] md:w-[300px]">
+              <div className="bg-white/95 backdrop-blur-sm rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-lg border border-pink-100 relative h-full">
+                {/* Product Image */}
+                <div className="relative w-full h-48 sm:h-56 md:h-64 mb-3 sm:mb-4 rounded-lg sm:rounded-xl overflow-hidden">
+                  <img
+                    src={product.src}
+                    alt={product.alt}
+                    className="object-cover w-full h-full"
+                  />
+                </div>
+
+                {/* Product Name */}
+                <div className="text-center">
+                  <h3 className="text-gray-900 font-semibold text-sm sm:text-base md:text-lg mb-2">
+                    {product.name}
+                  </h3>
+                  <div className="w-6 sm:w-8 h-1 bg-pink-300 rounded-full mx-auto"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function HeroSection() {
+  return (
+    <section
+      className="relative w-full min-h-screen overflow-hidden bg-pink-300"
+      style={{minHeight: '100vh', paddingTop: '140px'}}
+    >
+      {/* Background with SVG */}
+      <div className="absolute inset-0 pointer-events-none w-full h-full">
+        <img
+          src={heroBg}
+          alt=""
+          className="object-cover w-full h-full"
+        />
+      </div>
+
+      {/* Cute Floating Bubbles */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* Large bubbles */}
+        <div className="absolute top-[10%] left-[5%] w-32 h-32 bg-white/30 rounded-full blur-xl animate-float-bubble-1"></div>
+        <div className="absolute top-[20%] right-[10%] w-40 h-40 bg-white/25 rounded-full blur-xl animate-float-bubble-2"></div>
+        <div className="absolute top-[50%] left-[15%] w-28 h-28 bg-white/35 rounded-full blur-xl animate-float-bubble-3"></div>
+        <div className="absolute bottom-[20%] right-[20%] w-36 h-36 bg-white/30 rounded-full blur-xl animate-float-bubble-4"></div>
+        <div className="absolute bottom-[10%] left-[10%] w-24 h-24 bg-white/35 rounded-full blur-xl animate-float-bubble-5"></div>
+        
+        {/* Medium bubbles */}
+        <div className="absolute top-[30%] left-[25%] w-20 h-20 bg-white/30 rounded-full blur-lg animate-float-bubble-6"></div>
+        <div className="absolute top-[60%] right-[15%] w-24 h-24 bg-white/25 rounded-full blur-lg animate-float-bubble-7"></div>
+        <div className="absolute bottom-[30%] left-[30%] w-22 h-22 bg-white/35 rounded-full blur-lg animate-float-bubble-8"></div>
+        
+        {/* Small bubbles */}
+        <div className="absolute top-[40%] right-[30%] w-16 h-16 bg-white/30 rounded-full blur-md animate-float-bubble-9"></div>
+        <div className="absolute bottom-[40%] right-[5%] w-18 h-18 bg-white/35 rounded-full blur-md animate-float-bubble-10"></div>
+        <div className="absolute top-[15%] left-[50%] w-14 h-14 bg-white/30 rounded-full blur-md animate-float-bubble-11"></div>
+      </div>
+
+      {/* Background Gradient Blur */}
+      <div
+        className="absolute hidden md:block top-[84px] right-[163px] w-[990px] h-[940px] opacity-60 mix-blend-overlay blur-[204px]"
+        style={{
+          background:
+            'radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 100%)',
+        }}
+      />
+      {/* Main Content Container */}
+      <div className="relative max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-16 xl:px-24 py-6 sm:py-8 min-h-[60vh] flex flex-col">
+        {/* Top Section - Title */}
+        <div className="text-center flex-1 flex flex-col justify-end pb-2">
+          <h1 className="font-black text-white leading-tight tracking-tight font-cute">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 mb-2">
+              <span className="block text-3xl sm:text-5xl md:text-6xl lg:text-8xl">Discover</span>
+              <img
+                src={heroCute}
+                alt="Cute plushies"
+                className="w-[120px] h-auto sm:w-[180px] md:w-[220px] lg:w-[280px] rounded-full"
+              />
+              <span className="block text-3xl sm:text-5xl md:text-6xl lg:text-8xl">Cutest</span>
+            </div>
+            <div className="text-center">
+              <span className="block text-xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-8xl px-2">
+                Plushies & Adorable Gifts
+              </span>
+            </div>
+          </h1>
+        </div>
+
+        {/* Middle Section - Subtitle */}
+        <div className="text-center flex-1 flex items-center justify-center px-4">
+          <p className="text-white text-sm sm:text-base md:text-lg lg:text-[21px] leading-relaxed font-sans max-w-[700px] mx-auto text-center">
+            From Kawaii Plush Toys To Cozy Socks & Baby Mats - Bring Happiness
+            Home With Our Handpicked Collections.
+          </p>
+        </div>
+      </div>
+
+      {/* Product Image Slider - Full Width */}
+      <div className="w-full py-4">
+        <ProductImageSlider />
+      </div>
+
+      {/* CTA Button - Below Slider */}
+      <div className="flex justify-center py-4 sm:py-6 px-4">
+        <Button href="/collections/all" variant="primary" size="medium">
+          Shop Bestsellers
+        </Button>
+      </div>
+    </section>
+  );
+}

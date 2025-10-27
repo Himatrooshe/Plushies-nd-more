@@ -111,7 +111,7 @@ function SearchResultsProducts({term, products}) {
               <div className="search-results-item" key={product.id}>
                 <Link prefetch="intent" to={productUrl}>
                   {image && (
-                    <Image data={image} alt={product.title} width={50} />
+                    <Image data={image} alt={product.title} width={50} sizes="50px" />
                   )}
                   <div>
                     <p>{product.title}</p>

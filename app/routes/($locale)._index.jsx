@@ -2,12 +2,20 @@ import {Await, useLoaderData, Link} from 'react-router';
 import {Suspense} from 'react';
 import {Image} from '@shopify/hydrogen';
 import {ProductItem} from '~/components/ProductItem';
+import HeroSection from '~/components/HeroSection';
+import CategoriesSection from '~/components/CategoriesSection';
+import MostLovedSection from '~/components/MostLovedSection';
+import NewArrivalsSection from '~/components/NewArrivalsSection';
+import SpecialPricesSection from '~/components/SpecialPricesSection';
+import AboutSection from '~/components/AboutSection';
+import TestimonialsSection from '~/components/TestimonialsSection';
+import CTASection from '~/components/CTASection';
 
 /**
  * @type {Route.MetaFunction}
  */
 export const meta = () => {
-  return [{title: 'Hydrogen | Home'}];
+  return [{title: 'Plushies & More | Home'}];
 };
 
 /**
@@ -29,13 +37,23 @@ export async function loader(args) {
  * @param {Route.LoaderArgs}
  */
 async function loadCriticalData({context}) {
-  const [{collections}] = await Promise.all([
+  const [
+    {collections},
+    {products: mostLovedProducts},
+    {products: newArrivalsProducts},
+    {products: specialPricesProducts},
+  ] = await Promise.all([
     context.storefront.query(FEATURED_COLLECTION_QUERY),
-    // Add other queries here, so that they are loaded in parallel
+    context.storefront.query(MOST_LOVED_QUERY),
+    context.storefront.query(NEW_ARRIVALS_QUERY),
+    context.storefront.query(SPECIAL_PRICES_QUERY),
   ]);
 
   return {
     featuredCollection: collections.nodes[0],
+    mostLovedProducts: mostLovedProducts.nodes,
+    newArrivalsProducts: newArrivalsProducts.nodes,
+    specialPricesProducts: specialPricesProducts.nodes,
   };
 }
 
@@ -46,17 +64,7 @@ async function loadCriticalData({context}) {
  * @param {Route.LoaderArgs}
  */
 function loadDeferredData({context}) {
-  const recommendedProducts = context.storefront
-    .query(RECOMMENDED_PRODUCTS_QUERY)
-    .catch((error) => {
-      // Log query errors, but don't throw them so the page can still render
-      console.error(error);
-      return null;
-    });
-
-  return {
-    recommendedProducts,
-  };
+  return {};
 }
 
 export default function Homepage() {
@@ -64,8 +72,14 @@ export default function Homepage() {
   const data = useLoaderData();
   return (
     <div className="home">
-      <FeaturedCollection collection={data.featuredCollection} />
-      <RecommendedProducts products={data.recommendedProducts} />
+      <HeroSection />
+      <CategoriesSection />
+      <MostLovedSection products={data.mostLovedProducts} />
+      <NewArrivalsSection products={data.newArrivalsProducts} />
+      <SpecialPricesSection products={data.specialPricesProducts} />
+      <AboutSection />
+      <TestimonialsSection />
+      <CTASection />
     </div>
   );
 }
@@ -143,11 +157,12 @@ const FEATURED_COLLECTION_QUERY = `#graphql
   }
 `;
 
-const RECOMMENDED_PRODUCTS_QUERY = `#graphql
-  fragment RecommendedProduct on Product {
+const MOST_LOVED_QUERY = `#graphql
+  fragment MostLovedProduct on Product {
     id
     title
     handle
+    availableForSale
     priceRange {
       minVariantPrice {
         amount
@@ -160,6 +175,120 @@ const RECOMMENDED_PRODUCTS_QUERY = `#graphql
       altText
       width
       height
+    }
+    variants(first: 1) {
+      nodes {
+        id
+        availableForSale
+      }
+    }
+  }
+  query MostLovedProducts($country: CountryCode, $language: LanguageCode)
+    @inContext(country: $country, language: $language) {
+    products(first: 8, sortKey: UPDATED_AT, reverse: true) {
+      nodes {
+        ...MostLovedProduct
+      }
+    }
+  }
+`;
+
+const NEW_ARRIVALS_QUERY = `#graphql
+  fragment NewArrivalsProduct on Product {
+    id
+    title
+    handle
+    availableForSale
+    priceRange {
+      minVariantPrice {
+        amount
+        currencyCode
+      }
+    }
+    featuredImage {
+      id
+      url
+      altText
+      width
+      height
+    }
+    variants(first: 1) {
+      nodes {
+        id
+        availableForSale
+      }
+    }
+  }
+  query NewArrivalsProducts($country: CountryCode, $language: LanguageCode)
+    @inContext(country: $country, language: $language) {
+    products(first: 8, sortKey: CREATED_AT, reverse: true) {
+      nodes {
+        ...NewArrivalsProduct
+      }
+    }
+  }
+`;
+
+const SPECIAL_PRICES_QUERY = `#graphql
+  fragment SpecialPricesProduct on Product {
+    id
+    title
+    handle
+    availableForSale
+    priceRange {
+      minVariantPrice {
+        amount
+        currencyCode
+      }
+    }
+    featuredImage {
+      id
+      url
+      altText
+      width
+      height
+    }
+    variants(first: 1) {
+      nodes {
+        id
+        availableForSale
+      }
+    }
+  }
+  query SpecialPricesProducts($country: CountryCode, $language: LanguageCode)
+    @inContext(country: $country, language: $language) {
+    products(first: 8, sortKey: TITLE) {
+      nodes {
+        ...SpecialPricesProduct
+      }
+    }
+  }
+`;
+
+const RECOMMENDED_PRODUCTS_QUERY = `#graphql
+  fragment RecommendedProduct on Product {
+    id
+    title
+    handle
+    availableForSale
+    priceRange {
+      minVariantPrice {
+        amount
+        currencyCode
+      }
+    }
+    featuredImage {
+      id
+      url
+      altText
+      width
+      height
+    }
+    variants(first: 1) {
+      nodes {
+        id
+        availableForSale
+      }
     }
   }
   query RecommendedProducts ($country: CountryCode, $language: LanguageCode)

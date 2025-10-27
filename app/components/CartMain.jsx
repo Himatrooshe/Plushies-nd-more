@@ -47,15 +47,20 @@ export function CartMain({layout, cart: originalCart}) {
 function CartEmpty({hidden = false}) {
   const {close} = useAside();
   return (
-    <div hidden={hidden}>
-      <br />
-      <p>
-        Looks like you haven&rsquo;t added anything yet, let&rsquo;s get you
-        started!
+    <div hidden={hidden} className="cart-empty text-center py-16 px-4">
+      <div className="text-6xl mb-4">🛒</div>
+      <h3 className="text-2xl font-bold text-gray-900 mb-2">Your cart is empty!</h3>
+      <p className="text-gray-600 mb-6">
+        Looks like you haven&rsquo;t added anything yet, let&rsquo;s get you started! 💖
       </p>
-      <br />
-      <Link to="/collections" onClick={close} prefetch="viewport">
-        Continue shopping →
+      <Link 
+        to="/collections" 
+        onClick={close} 
+        prefetch="viewport"
+        className="inline-flex items-center gap-2 bg-[#ff7380] text-white px-6 py-3 rounded-2xl font-semibold hover:bg-[#ff5c6c] transition-colors"
+      >
+        <span>Continue shopping</span>
+        <span>→</span>
       </Link>
     </div>
   );

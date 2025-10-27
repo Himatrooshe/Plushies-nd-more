@@ -77,6 +77,7 @@ function SearchResultsPredictiveArticles({term, articles, closeSearch}) {
                     src={article.image.url}
                     width={50}
                     height={50}
+                    sizes="50px"
                   />
                 )}
                 <div>
@@ -117,6 +118,7 @@ function SearchResultsPredictiveCollections({term, collections, closeSearch}) {
                     src={collection.image.url}
                     width={50}
                     height={50}
+                    sizes="50px"
                   />
                 )}
                 <div>
@@ -191,6 +193,7 @@ function SearchResultsPredictiveProducts({term, products, closeSearch}) {
                     src={image.url}
                     width={50}
                     height={50}
+                    sizes="50px"
                   />
                 )}
                 <div>
