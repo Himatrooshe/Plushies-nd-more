@@ -3,7 +3,8 @@ import {Image, Money} from '@shopify/hydrogen';
 import {useVariantUrl} from '~/lib/variants';
 import {useAside} from './Aside';
 import {AddToCartButton} from './AddToCartButton';
-import redLoveIcon from '~/assets/red-love.svg?url';
+import purpleLoveIcon from '~/assets/prpl-love.svg?url';
+import hollowCardBg from '~/assets/hollow-card-bg.svg?url';
 
 /**
  * @param {{
@@ -31,20 +32,16 @@ export function ProductItem({product, loading}) {
   };
 
   return (
-    <div className="h-[420px] w-[280px] relative rounded-[20px] bg-[#ffdddd] overflow-hidden">
-        {/* Hot Selling Badge */}
-        <div className="absolute top-0 left-0 p-[8px] w-[140px] z-10">
-          <div className="bg-white flex items-center justify-center px-5 py-2 rounded-[16px] w-full">
-            <div className="flex items-center gap-2">
-              <span className="text-black text-[10px] font-normal">
-                Hot Selling
-              </span>
-              <HeartIcon />
-            </div>
-          </div>
-        </div>
-
-        {/* Product Image - Clickable */}
+    <div className="h-[420px] w-[280px] relative rounded-[20px] overflow-hidden">
+      {/* Background SVG */}
+      <div
+        className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: `url(${hollowCardBg})`,
+        }}
+      />
+      
+      {/* Product Image - Clickable */}
         <Link to={variantUrl} className="absolute h-[240px] left-1/2 top-[20px] -translate-x-1/2 w-[220px] cursor-pointer z-10">
           <div className="relative w-full h-full overflow-hidden">
             {image ? (
@@ -71,20 +68,22 @@ export function ProductItem({product, loading}) {
                 {product.title}
               </h3>
             </Link>
+            {/* Love Icons */}
+            <div className="flex items-center gap-0.5 mt-1">
+              {[...Array(5)].map((_, i) => (
+                <LoveIcon key={i} />
+              ))}
+            </div>
           </div>
-          <div className="text-[#c0424e] text-[20px] font-normal tracking-[2px] whitespace-nowrap font-cute">
+          <div className="text-[#53357A] text-[16px] font-normal tracking-[2px] whitespace-nowrap font-cute">
             {price && <Money data={price} />}
           </div>
         </div>
 
-        {/* Star Rating */}
-        <div className="absolute left-[12px] top-[305px] flex items-center gap-0.5 z-20">
-          <StarRating rating={4.8} reviewCount={135} />
-        </div>
 
         {/* Add to Cart and Heart Button */}
         <div
-          className="absolute left-[10px] top-[350px] w-[260px] flex items-center justify-between gap-3 z-30"
+          className="absolute left-[10px] top-[350px] w-[260px] flex items-center justify-center gap-3 z-30"
           onClick={(e) => e.stopPropagation()}
         >
           {isAvailable && firstVariant?.id ? (
@@ -112,9 +111,9 @@ export function ProductItem({product, loading}) {
             >
               {(fetcher) => (
                 <div
-                  className={`bg-[#c0424e] flex items-center justify-center px-6 py-[9px] rounded-[118px] h-[45px] min-w-[180px] transition-colors whitespace-nowrap ${
+                  className={`bg-[#53357A] flex items-center justify-center px-6 py-[9px] rounded-[118px] h-[45px] min-w-[180px] transition-colors whitespace-nowrap ${
                     isAvailable
-                      ? 'hover:bg-[#a0353f]'
+                      ? 'hover:bg-[#4a2f6b]'
                       : 'bg-gray-300 cursor-not-allowed'
                   } ${
                     fetcher.state !== 'idle' ? 'pointer-events-none opacity-70' : ''
@@ -163,12 +162,6 @@ export function ProductItem({product, loading}) {
             </button>
           )}
 
-          <button
-            onClick={(e) => e.stopPropagation()}
-            className="group border border-[#c0424e] border-solid flex items-center justify-center p-4 rounded-[28px] w-[45px] h-[45px] hover:bg-[#c0424e] hover:text-white transition-colors"
-          >
-            <HeartIcon />
-          </button>
         </div>
 
         {/* Out of Stock Overlay */}
@@ -184,42 +177,16 @@ export function ProductItem({product, loading}) {
 }
 
 /**
- * Star Rating Component
+ * Love Icon Component
  */
-function StarRating({rating = 4.8, reviewCount = 135}) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {[...Array(5)].map((_, i) => (
-        <div key={i} className="relative w-[15px] h-[15px] shrink-0">
-          <img
-            src={redLoveIcon}
-            alt="Rating icon"
-            width={15}
-            height={15}
-            className={`w-full h-full ${
-              i < Math.floor(rating) ? 'opacity-100' : 'opacity-30'
-            }`}
-          />
-        </div>
-      ))}
-      <span className="text-[#c0424e] text-[15px] font-normal ml-1">
-        ({reviewCount})
-      </span>
-    </div>
-  );
-}
-
-/**
- * Heart Icon Component
- */
-function HeartIcon() {
+function LoveIcon() {
   return (
     <img
-      src={redLoveIcon}
-      alt="Heart icon"
-      width={16}
-      height={16}
-      className="w-4 h-4 transition-all duration-200 group-hover:brightness-0 group-hover:invert"
+      src={purpleLoveIcon}
+      alt="Love icon"
+      width={12}
+      height={12}
+      className="w-3 h-3"
     />
   );
 }

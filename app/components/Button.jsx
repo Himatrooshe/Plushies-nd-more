@@ -16,7 +16,8 @@ export default function Button({
   const variants = {
     primary: "bg-[#ff7380] text-white border-[#ff7380] hover:bg-[#ff5c6c] hover:border-[#ff5c6c] hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl",
     secondary: "bg-white text-[#c0424e] border-[#c0424e] hover:bg-[#c0424e] hover:text-white hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl",
-    outline: "bg-transparent text-white border-white hover:bg-white hover:text-[#c0424e] hover:scale-105 active:scale-95"
+    outline: "bg-transparent text-white border-white hover:bg-white hover:text-[#c0424e] hover:scale-105 active:scale-95",
+    halloween: "bg-[#6A449E] text-white border-[#6A449E] hover:bg-[#5a3a8e] hover:border-[#5a3a8e] hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl"
   };
 
   const sizes = {
@@ -39,7 +40,7 @@ export default function Button({
             height="10" 
             viewBox="0 0 24 24" 
             fill="none"
-            className={variant === 'primary' ? 'text-[#ff7380]' : 'text-[#c0424e]'}
+            className={variant === 'primary' ? 'text-[#ff7380]' : variant === 'halloween' ? 'text-[#6A449E]' : 'text-[#c0424e]'}
           >
             <path 
               d="M7 17L17 7M17 7H7M17 7V17" 

@@ -1,4 +1,5 @@
 import {useLoaderData} from 'react-router';
+import {useState} from 'react';
 import {
   getSelectedProductOptions,
   Analytics,
@@ -103,101 +104,222 @@ export default function Product() {
     selectedOrFirstAvailableVariant: selectedVariant,
   });
 
-  const {title, descriptionHtml} = product;
+  const {title, descriptionHtml, images} = product;
+  
+  // Extract images from Shopify GraphQL response
+  const productImages = images?.edges?.map(edge => edge.node) || [];
+  
+  // State for selected image
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  
+  // Use selected variant image as main image, fallback to selected thumbnail image
+  const mainImage = selectedVariant?.image || productImages[selectedImageIndex];
+  
+  // Function to handle image selection
+  const handleImageSelect = (index) => {
+    setSelectedImageIndex(index);
+  };
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-pink-50 to-white pt-24 sm:pt-28 md:pt-32">
-      {/* Decorative Top Elements */}
-      <div className="absolute top-0 left-0 w-full overflow-hidden pointer-events-none">
-        <div className="absolute top-10 left-10 w-20 h-20 bg-pink-200 rounded-full opacity-20 blur-2xl"></div>
-        <div className="absolute top-20 right-20 w-32 h-32 bg-purple-200 rounded-full opacity-20 blur-2xl"></div>
+    <div className="min-h-screen bg-gray-50 pt-20">
+      {/* Breadcrumb Navigation */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <nav className="flex items-center space-x-2 text-sm text-gray-500">
+            <a href="/" className="hover:text-gray-700">Home</a>
+            <span>/</span>
+            <a href="/collections/all" className="hover:text-gray-700">Products</a>
+            <span>/</span>
+            <span className="text-gray-900">{title}</span>
+          </nav>
+        </div>
       </div>
 
-      {/* Product Container */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+      {/* Main Product Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
-          {/* Product Image */}
-          <div className="product-image-wrapper relative group">
-            {/* Floating badges */}
-            <div className="absolute top-4 left-4 z-10">
-              <div className="bg-linear-to-r from-pink-500 to-rose-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg flex items-center gap-2 animate-bounce">
-                <span>✨</span>
-                <span>New Arrival</span>
-              </div>
-            </div>
-            <div className="absolute top-4 right-4 z-10">
-              <div className="bg-white text-pink-600 px-4 py-2 rounded-full text-sm font-bold shadow-lg flex items-center gap-2 border-2 border-pink-200">
-                <span>💝</span>
-                <span>Best Seller</span>
-              </div>
+          {/* Product Images */}
+          <div className="space-y-4">
+            {/* Main Image */}
+            <div className="aspect-square bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              {mainImage ? (
+                <ProductImage image={mainImage} />
+              ) : (
+                <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                  <span className="text-gray-400">No image available</span>
+                </div>
+              )}
             </div>
             
-            {/* Image with cute border */}
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl border-8 border-white bg-linear-to-br from-pink-100 to-purple-100 p-2">
-              <ProductImage image={selectedVariant?.image} />
-            </div>
+            {/* Thumbnail Images - Dynamic Grid */}
+            {productImages.length > 1 && (
+              <div className={`grid gap-2 ${
+                productImages.length === 2 ? 'grid-cols-2' :
+                productImages.length === 3 ? 'grid-cols-3' :
+                productImages.length >= 4 ? 'grid-cols-4' : 'grid-cols-1'
+              }`}>
+                {productImages.map((image, index) => (
+                  <div 
+                    key={image.id} 
+                    className={`aspect-square bg-white rounded-md border overflow-hidden cursor-pointer transition-all duration-200 ${
+                      index === selectedImageIndex ? 'border-blue-500 ring-2 ring-blue-200 scale-105' : 'border-gray-200 hover:border-gray-300 hover:scale-102'
+                    }`}
+                    onClick={() => handleImageSelect(index)}
+                  >
+                    <ProductImage image={image} />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Product Info */}
-          <div className="product-main flex flex-col">
-            {/* Cute Emoji Title */}
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-4xl sm:text-5xl">🎀</span>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900">
-                {title}
-              </h1>
+          {/* Product Information */}
+          <div className="space-y-6">
+            {/* Product Title */}
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{title}</h1>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center">
+                  <div className="flex text-yellow-400">
+                    {[...Array(5)].map((_, i) => (
+                      <svg key={i} className="w-5 h-5 fill-current" viewBox="0 0 20 20">
+                        <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
+                      </svg>
+                    ))}
+                  </div>
+                  <span className="ml-2 text-sm text-gray-600">(4.8) • 127 reviews</span>
+                </div>
+                <div className="text-sm text-gray-500">SKU: {selectedVariant?.sku || 'N/A'}</div>
+              </div>
             </div>
 
-            {/* Product Price with cute styling */}
-            <div className="mb-6 bg-linear-to-r from-pink-50 to-purple-50 rounded-2xl p-4 border-2 border-pink-200">
+            {/* Price */}
+            <div className="border-t border-b border-gray-200 py-6">
               <ProductPrice
                 price={selectedVariant?.price}
                 compareAtPrice={selectedVariant?.compareAtPrice}
               />
             </div>
 
-            {/* Product Form (Variants & Add to Cart) */}
-            <div className="mb-8">
+            {/* Product Options */}
+            <div className="space-y-4">
               <ProductForm
                 productOptions={productOptions}
                 selectedVariant={selectedVariant}
               />
             </div>
 
-            {/* Cute Divider */}
-            <div className="flex items-center gap-4 my-8">
-              <div className="flex-1 h-1 bg-linear-to-r from-pink-300 to-purple-300 rounded-full"></div>
-              <span className="text-2xl">💕</span>
-              <div className="flex-1 h-1 bg-linear-to-r from-purple-300 to-pink-300 rounded-full"></div>
+            {/* Product Features */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900">Key Features</h3>
+              <ul className="space-y-2">
+                <li className="flex items-center text-sm text-gray-600">
+                  <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                  </svg>
+                  Premium quality materials
+                </li>
+                <li className="flex items-center text-sm text-gray-600">
+                  <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                  </svg>
+                  Handcrafted with care
+                </li>
+                <li className="flex items-center text-sm text-gray-600">
+                  <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                  </svg>
+                  Safe for all ages
+                </li>
+                <li className="flex items-center text-sm text-gray-600">
+                  <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                  </svg>
+                  Machine washable
+                </li>
+              </ul>
             </div>
 
-            {/* Product Description with cute styling */}
-            <div className="product-description bg-white rounded-3xl p-6 sm:p-8 shadow-lg border-2 border-pink-100">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-2xl">📝</span>
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                  Description
-                </h2>
+            {/* Trust Badges */}
+            <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-200">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                  </svg>
+                </div>
+                <div className="text-xs text-gray-600">Free Shipping</div>
+                <div className="text-xs text-gray-500">Over $50</div>
               </div>
-              <div 
-                className="prose prose-sm sm:prose-base max-w-none text-gray-700 leading-relaxed"
-                dangerouslySetInnerHTML={{__html: descriptionHtml}} 
-              />
+              <div className="text-center">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                  </svg>
+                </div>
+                <div className="text-xs text-gray-600">Easy Returns</div>
+                <div className="text-xs text-gray-500">30 Days</div>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                </div>
+                <div className="text-xs text-gray-600">Quality</div>
+                <div className="text-xs text-gray-500">Guaranteed</div>
+              </div>
             </div>
+          </div>
+        </div>
 
-            {/* Cute Trust Badges */}
-            <div className="mt-8 grid grid-cols-2 gap-4">
-                                <div className="bg-linear-to-br from-pink-50 to-rose-50 rounded-2xl p-4 border-2 border-pink-200 text-center">
-                <div className="text-3xl mb-2">🚚</div>
-                <div className="text-xs font-bold text-gray-700">Free Shipping</div>
-                <div className="text-[10px] text-gray-500">Over $35</div>
-              </div>
-                                <div className="bg-linear-to-br from-purple-50 to-pink-50 rounded-2xl p-4 border-2 border-purple-200 text-center">
-                <div className="text-3xl mb-2">💝</div>
-                <div className="text-xs font-bold text-gray-700">Easy Returns</div>
-                <div className="text-[10px] text-gray-500">30 Days</div>
-              </div>
+        {/* Product Details Tabs */}
+        <div className="mt-16">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              <button className="border-b-2 border-blue-500 py-2 px-1 text-sm font-medium text-blue-600">
+                Description
+              </button>
+              <button className="border-b-2 border-transparent py-2 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                Specifications
+              </button>
+              <button className="border-b-2 border-transparent py-2 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                Reviews (127)
+              </button>
+              <button className="border-b-2 border-transparent py-2 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                Shipping & Returns
+              </button>
+            </nav>
+          </div>
+
+          <div className="py-8">
+            <div className="prose max-w-none">
+              <div dangerouslySetInnerHTML={{__html: descriptionHtml}} />
             </div>
+          </div>
+        </div>
+
+        {/* Related Products */}
+        <div className="mt-16">
+          <h2 className="text-2xl font-bold text-gray-900 mb-8">You might also like</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map((item) => (
+              <div key={item} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                <div className="aspect-square bg-gray-100 flex items-center justify-center">
+                  <span className="text-gray-400">Product {item}</span>
+                </div>
+                <div className="p-4">
+                  <h3 className="font-medium text-gray-900 mb-2">Related Product {item}</h3>
+                  <p className="text-sm text-gray-600 mb-3">Perfect companion item</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-lg font-semibold text-gray-900">$29.99</span>
+                    <button className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">
+                      Add to Cart
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -269,6 +391,17 @@ const PRODUCT_FRAGMENT = `#graphql
     description
     encodedVariantExistence
     encodedVariantAvailability
+    images(first: 10) {
+      edges {
+        node {
+          id
+          url
+          altText
+          width
+          height
+        }
+      }
+    }
     options {
       name
       optionValues {

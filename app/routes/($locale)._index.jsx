@@ -3,8 +3,10 @@ import {Suspense} from 'react';
 import {Image} from '@shopify/hydrogen';
 import {ProductItem} from '~/components/ProductItem';
 import HeroSection from '~/components/HeroSection';
+import HalloweenHeroSection from '~/components/HalloweenHeroSection';
 import CategoriesSection from '~/components/CategoriesSection';
 import MostLovedSection from '~/components/MostLovedSection';
+import HalloweenMostLovedSection from '~/components/HalloweenMostLovedSection';
 import NewArrivalsSection from '~/components/NewArrivalsSection';
 import SpecialPricesSection from '~/components/SpecialPricesSection';
 import AboutSection from '~/components/AboutSection';
@@ -72,9 +74,9 @@ export default function Homepage() {
   const data = useLoaderData();
   return (
     <div className="home">
-      <HeroSection />
+      <HalloweenHeroSection />
       <CategoriesSection />
-      <MostLovedSection products={data.mostLovedProducts} />
+      <HalloweenMostLovedSection products={data.mostLovedProducts} />
       <NewArrivalsSection products={data.newArrivalsProducts} />
       <SpecialPricesSection products={data.specialPricesProducts} />
       <AboutSection />

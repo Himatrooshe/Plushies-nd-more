@@ -1,4 +1,5 @@
-import {redirect, useLoaderData} from 'react-router';
+import {redirect, useLoaderData, Link} from 'react-router';
+import {useState} from 'react';
 import {getPaginationVariables, Analytics} from '@shopify/hydrogen';
 import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
@@ -40,10 +41,12 @@ async function loadCriticalData({context, params, request}) {
     throw redirect('/collections');
   }
 
-  const [{collection}] = await Promise.all([
+  const [{collection, collections}] = await Promise.all([
     storefront.query(COLLECTION_QUERY, {
       variables: {handle, ...paginationVariables},
-      // Add other queries here, so that they are loaded in parallel
+    }),
+    storefront.query(ALL_COLLECTIONS_QUERY, {
+      variables: {first: 50}, // Fetch all collections for sidebar
     }),
   ]);
 
@@ -58,6 +61,7 @@ async function loadCriticalData({context, params, request}) {
 
   return {
     collection,
+    collections: collections?.nodes || [],
   };
 }
 
@@ -73,77 +77,195 @@ function loadDeferredData({context}) {
 
 export default function Collection() {
   /** @type {LoaderReturnData} */
-  const {collection} = useLoaderData();
+  const {collection, collections} = useLoaderData();
+  const [sortBy, setSortBy] = useState('featured');
+  const [gridLayout, setGridLayout] = useState(3);
+  const [priceRange, setPriceRange] = useState({min: '', max: ''});
+  const [inStockOnly, setInStockOnly] = useState(false);
+
+  const productCount = collection.products?.nodes?.length || 0;
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-pink-50 via-purple-50 to-white pt-24 sm:pt-28 md:pt-32">
-      {/* Decorative Background Elements */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-5 w-40 h-40 bg-pink-300 rounded-full opacity-10 blur-3xl"></div>
-        <div className="absolute top-40 right-10 w-60 h-60 bg-purple-300 rounded-full opacity-10 blur-3xl"></div>
-        <div className="absolute bottom-20 left-20 w-32 h-32 bg-pink-200 rounded-full opacity-10 blur-2xl"></div>
+    <div className="min-h-screen bg-gray-50 pt-20">
+      {/* Hero Section */}
+      <div className="bg-linear-to-r from-pink-500 to-purple-600 py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4">
+            Shop All Cutest Plushies
+          </h1>
+          <p className="text-xl text-white/90 max-w-3xl mx-auto">
+            Lovingly Crafted Plush Friends Designed To Bring Comfort, Joy, And Endless Hugs.
+          </p>
+        </div>
       </div>
 
-      {/* Content Container */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
-        {/* Header Section with cute styling */}
-        <div className="text-center mb-12 sm:mb-16">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <span className="text-5xl sm:text-6xl">💖</span>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900">
-              {collection.title}
-            </h1>
-            <span className="text-5xl sm:text-6xl">✨</span>
-          </div>
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Left Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-24">
+              {/* Shop By Categories */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Shop By Categories</h3>
+                <div className="space-y-2">
+                  {collections.map((cat) => (
+                    <Link
+                      key={cat.id}
+                      to={`/collections/${cat.handle}`}
+                      className={`flex items-center justify-between py-2 px-3 rounded-md transition-colors ${
+                        cat.handle === collection.handle
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="font-medium">{cat.title}</span>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/>
+                      </svg>
+                    </Link>
+                  ))}
+                </div>
+              </div>
 
-          {/* Description with cute container */}
-          {collection.description && (
-            <div className="max-w-3xl mx-auto mb-6">
-              <div className="bg-linear-to-r from-pink-50 to-purple-50 rounded-3xl p-6 sm:p-8 border-2 border-pink-200 shadow-lg">
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <span className="text-2xl">📝</span>
-                  <p className="text-base sm:text-lg text-gray-700 leading-relaxed">
-                    {collection.description}
-                  </p>
+              {/* Filter by */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Filter by</h3>
+                
+                {/* Availability */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">Availability</h4>
+                  <div className="space-y-2">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={inStockOnly}
+                        onChange={(e) => setInStockOnly(e.target.checked)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-600">In stock ({productCount})</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-600">Out of stock (0)</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Price Range */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">Price Range</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="number"
+                      placeholder="$ Min"
+                      value={priceRange.min}
+                      onChange={(e) => setPriceRange({...priceRange, min: e.target.value})}
+                      className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <input
+                      type="number"
+                      placeholder="$ Max"
+                      value={priceRange.max}
+                      onChange={(e) => setPriceRange({...priceRange, max: e.target.value})}
+                      className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Cute decorative line */}
-          <div className="flex items-center justify-center gap-4 max-w-md mx-auto">
-            <div className="flex-1 h-1 bg-linear-to-r from-transparent via-pink-400 to-pink-400 rounded-full"></div>
-            <span className="text-2xl">🎀</span>
-            <div className="flex-1 h-1 bg-linear-to-l from-transparent via-purple-400 to-purple-400 rounded-full"></div>
+          {/* Right Main Content */}
+          <div className="lg:col-span-3">
+            {/* Toolbar */}
+            <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+              <div className="flex items-center justify-between">
+                {/* Grid Layout Options */}
+                <div className="flex items-center space-x-2">
+                  {[1, 2, 3, 4].map((cols) => (
+                    <button
+                      key={cols}
+                      onClick={() => setGridLayout(cols)}
+                      className={`p-2 rounded-md transition-colors ${
+                        gridLayout === cols
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      <div className={`grid gap-1 ${
+                        cols === 1 ? 'grid-cols-1' :
+                        cols === 2 ? 'grid-cols-2' :
+                        cols === 3 ? 'grid-cols-3' : 'grid-cols-4'
+                      }`}>
+                        {Array.from({length: cols}).map((_, i) => (
+                          <div key={i} className="w-2 h-2 bg-current rounded-sm"></div>
+                        ))}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Product Count */}
+                <div className="text-sm text-gray-600">
+                  Showing {productCount} of {productCount} products
+                </div>
+
+                {/* Sort By */}
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600">Sort by:</span>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="featured">Featured</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                    <option value="newest">Newest</option>
+                    <option value="best-selling">Best Selling</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Products Grid */}
+            <div className={`grid gap-6 ${
+              gridLayout === 1 ? 'grid-cols-1' :
+              gridLayout === 2 ? 'grid-cols-1 md:grid-cols-2' :
+              gridLayout === 3 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' :
+              'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+            }`}>
+              <PaginatedResourceSection
+                connection={collection.products}
+                resourcesClassName=""
+              >
+                {({node: product, index}) => (
+                  <div key={product.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                    <ProductItem
+                      product={product}
+                      loading={index < 8 ? 'eager' : undefined}
+                    />
+                  </div>
+                )}
+              </PaginatedResourceSection>
+            </div>
           </div>
         </div>
-
-        {/* Products Grid */}
-        <div className="collection">
-          <PaginatedResourceSection
-            connection={collection.products}
-            resourcesClassName="products-grid"
-          >
-            {({node: product, index}) => (
-              <ProductItem
-                key={product.id}
-                product={product}
-                loading={index < 8 ? 'eager' : undefined}
-              />
-            )}
-          </PaginatedResourceSection>
-        </div>
-
-        {/* Analytics */}
-        <Analytics.CollectionView
-          data={{
-            collection: {
-              id: collection.id,
-              handle: collection.handle,
-            },
-          }}
-        />
       </div>
+
+      {/* Analytics */}
+      <Analytics.CollectionView
+        data={{
+          collection: {
+            id: collection.id,
+            handle: collection.handle,
+          },
+        }}
+      />
     </div>
   );
 }
@@ -214,6 +336,25 @@ const COLLECTION_QUERY = `#graphql
           endCursor
           startCursor
         }
+      }
+    }
+  }
+`;
+
+const ALL_COLLECTIONS_QUERY = `#graphql
+  fragment CollectionListItem on Collection {
+    id
+    title
+    handle
+  }
+  query AllCollections(
+    $first: Int!
+    $country: CountryCode
+    $language: LanguageCode
+  ) @inContext(country: $country, language: $language) {
+    collections(first: $first) {
+      nodes {
+        ...CollectionListItem
       }
     }
   }

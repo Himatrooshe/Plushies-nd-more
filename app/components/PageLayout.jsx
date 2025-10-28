@@ -3,6 +3,7 @@ import {Suspense, useId} from 'react';
 import {Aside} from '~/components/Aside';
 import {Footer} from '~/components/Footer';
 import {Header, HeaderMenu} from '~/components/Header';
+import {HalloweenHeader} from '~/components/HalloweenHeader';
 import {CartMain} from '~/components/CartMain';
 import {
   SEARCH_ENDPOINT,
@@ -27,7 +28,7 @@ export function PageLayout({
       <SearchAside />
       <MobileMenuAside header={header} publicStoreDomain={publicStoreDomain} />
       {header && (
-        <Header
+        <HalloweenHeader
           header={header}
           cart={cart}
           isLoggedIn={isLoggedIn}

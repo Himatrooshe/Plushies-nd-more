@@ -7,7 +7,7 @@ import redLoveIcon from '~/assets/red-love.svg?url';
 export default function SpecialPricesSection({products = []}) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollRef = useRef(null);
-  const cardWidth = 320; // Approximate card width with gap
+  const cardWidth = 296; // Card width (280px) + gap (16px) for better calculation
 
   const goToSlide = (index) => {
     setCurrentIndex(index);
@@ -17,7 +17,18 @@ export default function SpecialPricesSection({products = []}) {
     return null;
   }
 
-  const slidesToShow = Math.min(products.length, 4);
+  // Responsive slides to show
+  const getSlidesToShow = () => {
+    if (typeof window !== 'undefined') {
+      if (window.innerWidth < 640) return 1; // Mobile: 1 product
+      if (window.innerWidth < 768) return 2; // Small tablet: 2 products
+      if (window.innerWidth < 1024) return 3; // Tablet: 3 products
+      return 4; // Desktop: 4 products
+    }
+    return 4; // Default for SSR
+  };
+
+  const slidesToShow = getSlidesToShow();
   const totalSlides = Math.ceil(products.length / slidesToShow);
 
   return (
@@ -78,17 +89,17 @@ export default function SpecialPricesSection({products = []}) {
         <div className="flex flex-col items-center">
           <div
             ref={scrollRef}
-            className="relative overflow-hidden w-full"
+            className="relative overflow-hidden w-full max-w-sm sm:max-w-2xl md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto"
           >
             <div
-              className="flex gap-4 sm:gap-6 transition-transform duration-500 ease-in-out"
+              className="flex gap-4 transition-transform duration-500 ease-in-out"
               style={{
                 transform: `translateX(-${currentIndex * cardWidth * slidesToShow}px)`,
                 willChange: 'transform',
               }}
             >
               {products.map((product, index) => (
-                <div key={product.id} className="shrink-0">
+                <div key={product.id} className="shrink-0 w-[280px]">
                   <ProductItem product={product} loading={index < 4 ? 'eager' : 'lazy'} />
                 </div>
               ))}

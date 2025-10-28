@@ -7,56 +7,56 @@ import plush4 from '~/assets/plush-4.png?url';
 
 const categories = [
   {
-    id: 'plushies',
-    title: 'Plushies & Stuffed Animals',
+    id: 'plush-stuffed',
+    title: 'Plush & Stuffed Animals',
     image: pluse1,
-    href: '/collections/plushies'
+    href: '/collections/plush-stuffed'
   },
   {
-    id: 'kawaii',
-    title: 'Kawaii Lifestyle',
+    id: 'home-decor-gifts',
+    title: 'Home Decor & Gifts',
     image: plush2,
-    href: '/collections/kawaii'
+    href: '/collections/home-decor-gifts'
   },
   {
-    id: 'baby-kids',
-    title: 'Baby & Kids',
+    id: 'sensory-fidget',
+    title: 'Sensory & Fidget',
     image: plush3,
-    href: '/collections/baby-kids'
+    href: '/collections/sensory-fidget'
   },
   {
-    id: 'accessories',
-    title: 'Accessories',
+    id: 'interactive-toy',
+    title: 'Interactive Toy',
     image: plush4,
-    href: '/collections/accessories'
+    href: '/collections/interactive-toy'
   }
 ];
 
 // Second row with different names and mixed up categories
 const secondRowCategories = [
   {
-    id: 'cozy-home',
-    title: 'Cozy Home',
+    id: 'baby-nursery',
+    title: 'Baby & Nursery',
     image: plush2,
-    href: '/collections/cozy-home'
+    href: '/collections/baby-nursery'
   },
   {
-    id: 'toys-games',
-    title: 'Toys & Games',
+    id: 'bath-bath-toys',
+    title: 'Bath & Bath Toys',
     image: pluse1,
-    href: '/collections/toys-games'
+    href: '/collections/bath-bath-toys'
   },
   {
-    id: 'fashion-style',
-    title: 'Fashion & Style',
+    id: 'character-licensed',
+    title: 'Character & Licensed',
     image: plush4,
-    href: '/collections/fashion-style'
+    href: '/collections/character-licensed'
   },
   {
-    id: 'nursery-kids',
-    title: 'Nursery & Kids',
+    id: 'bath-bath-toys-2',
+    title: 'Bath & Bath Toys',
     image: plush3,
-    href: '/collections/nursery-kids'
+    href: '/collections/bath-bath-toys-2'
   }
 ];
 
