@@ -10,7 +10,7 @@ const categories = [
     id: 'plush-stuffed',
     title: 'Plush & Stuffed Animals',
     image: pluse1,
-    href: '/collections/plush-stuffed'
+    href: '/collections/plush-stuffed-animals'
   },
   {
     id: 'home-decor-gifts',
@@ -56,7 +56,7 @@ const secondRowCategories = [
     id: 'bath-bath-toys-2',
     title: 'Bath & Bath Toys',
     image: plush3,
-    href: '/collections/bath-bath-toys-2'
+    href: '/collections/bath-bath-toys'
   }
 ];
 

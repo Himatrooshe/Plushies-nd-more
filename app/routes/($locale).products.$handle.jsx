@@ -1,5 +1,5 @@
 import {useLoaderData} from 'react-router';
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {
   getSelectedProductOptions,
   Analytics,
@@ -12,6 +12,7 @@ import {ProductPrice} from '~/components/ProductPrice';
 import {ProductImage} from '~/components/ProductImage';
 import {ProductForm} from '~/components/ProductForm';
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
+import {useRevealAnimations} from '~/components/useRevealAnimations';
 
 /**
  * @type {Route.MetaFunction}
@@ -105,6 +106,8 @@ export default function Product() {
   });
 
   const {title, descriptionHtml, images} = product;
+  const pageRef = useRef(null);
+  useRevealAnimations(pageRef);
   
   // Extract images from Shopify GraphQL response
   const productImages = images?.edges?.map(edge => edge.node) || [];
@@ -115,13 +118,41 @@ export default function Product() {
   // Use selected variant image as main image, fallback to selected thumbnail image
   const mainImage = selectedVariant?.image || productImages[selectedImageIndex];
   
+  // When the selected variant has a specific image, sync the thumbnail selection to it
+  useEffect(() => {
+    const variantImgId = selectedVariant?.image?.id;
+    if (!variantImgId) return;
+    const idx = productImages.findIndex((img) => img.id === variantImgId);
+    if (idx >= 0 && idx !== selectedImageIndex) {
+      setSelectedImageIndex(idx);
+    }
+  }, [selectedVariant?.image?.id]);
+
+  // Heuristic: if variant has no specific image, try match by selected color name in image alt/url
+  useEffect(() => {
+    if (selectedVariant?.image) return; // handled by previous effect
+    const color = (selectedVariant?.selectedOptions || [])
+      .find((o) => o.name?.toLowerCase() === 'color')?.value?.toLowerCase();
+    if (!color) return;
+    const normalize = (s) => s?.toLowerCase()?.replace(/[^a-z0-9]+/g, '') || '';
+    const target = normalize(color);
+    const idx = productImages.findIndex((img) => {
+      const alt = normalize(img.altText);
+      const url = normalize(img.url);
+      return alt.includes(target) || url.includes(target);
+    });
+    if (idx >= 0 && idx !== selectedImageIndex) {
+      setSelectedImageIndex(idx);
+    }
+  }, [selectedVariant?.selectedOptions, productImages]);
+
   // Function to handle image selection
   const handleImageSelect = (index) => {
     setSelectedImageIndex(index);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20">
+    <div ref={pageRef} className="min-h-screen bg-gray-50 pt-20">
       {/* Breadcrumb Navigation */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -139,7 +170,7 @@ export default function Product() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
           {/* Product Images */}
-          <div className="space-y-4">
+          <div className="space-y-4 reveal-panel">
             {/* Main Image */}
             <div className="aspect-square bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               {mainImage ? (
@@ -147,26 +178,24 @@ export default function Product() {
               ) : (
                 <div className="w-full h-full bg-gray-100 flex items-center justify-center">
                   <span className="text-gray-400">No image available</span>
-                </div>
+              </div>
               )}
             </div>
             
             {/* Thumbnail Images - Dynamic Grid */}
             {productImages.length > 1 && (
-              <div className={`grid gap-2 ${
-                productImages.length === 2 ? 'grid-cols-2' :
-                productImages.length === 3 ? 'grid-cols-3' :
-                productImages.length >= 4 ? 'grid-cols-4' : 'grid-cols-1'
-              }`}>
+              <div className="flex flex-wrap gap-2">
                 {productImages.map((image, index) => (
-                  <div 
-                    key={image.id} 
-                    className={`aspect-square bg-white rounded-md border overflow-hidden cursor-pointer transition-all duration-200 ${
+                  <div
+                    key={image.id}
+                    className={`w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-white rounded-md border overflow-hidden cursor-pointer transition-all duration-200 shrink-0 ${
                       index === selectedImageIndex ? 'border-blue-500 ring-2 ring-blue-200 scale-105' : 'border-gray-200 hover:border-gray-300 hover:scale-102'
                     }`}
                     onClick={() => handleImageSelect(index)}
                   >
-                    <ProductImage image={image} />
+                    <div className="w-full h-full">
+                      <ProductImage image={image} />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -174,7 +203,7 @@ export default function Product() {
           </div>
 
           {/* Product Information */}
-          <div className="space-y-6">
+          <div className="space-y-6 reveal-panel">
             {/* Product Title */}
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{title}</h1>
@@ -256,7 +285,7 @@ export default function Product() {
                   <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
                   </svg>
-                </div>
+            </div>
                 <div className="text-xs text-gray-600">Easy Returns</div>
                 <div className="text-xs text-gray-500">30 Days</div>
               </div>
@@ -274,7 +303,7 @@ export default function Product() {
         </div>
 
         {/* Product Details Tabs */}
-        <div className="mt-16">
+        <div className="mt-16 reveal-panel">
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8">
               <button className="border-b-2 border-blue-500 py-2 px-1 text-sm font-medium text-blue-600">
@@ -300,11 +329,11 @@ export default function Product() {
         </div>
 
         {/* Related Products */}
-        <div className="mt-16">
+        <div className="mt-16 reveal-panel">
           <h2 className="text-2xl font-bold text-gray-900 mb-8">You might also like</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[1, 2, 3, 4].map((item) => (
-              <div key={item} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+              <div key={item} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow reveal-card">
                 <div className="aspect-square bg-gray-100 flex items-center justify-center">
                   <span className="text-gray-400">Product {item}</span>
                 </div>

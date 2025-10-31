@@ -1,9 +1,11 @@
 import {redirect, useLoaderData, Link} from 'react-router';
-import {useState} from 'react';
+import {useRef, useState} from 'react';
+import {useRevealAnimations} from '~/components/useRevealAnimations';
 import {getPaginationVariables, Analytics} from '@shopify/hydrogen';
 import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
 import {ProductItem} from '~/components/ProductItem';
+import heroBg from '~/assets/hero-bg.svg?url';
 
 /**
  * @type {Route.MetaFunction}
@@ -41,7 +43,7 @@ async function loadCriticalData({context, params, request}) {
     throw redirect('/collections');
   }
 
-  const [{collection, collections}] = await Promise.all([
+  const [collectionResult, allCollectionsResult] = await Promise.all([
     storefront.query(COLLECTION_QUERY, {
       variables: {handle, ...paginationVariables},
     }),
@@ -50,6 +52,7 @@ async function loadCriticalData({context, params, request}) {
     }),
   ]);
 
+  const collection = collectionResult?.collection;
   if (!collection) {
     throw new Response(`Collection ${handle} not found`, {
       status: 404,
@@ -61,7 +64,7 @@ async function loadCriticalData({context, params, request}) {
 
   return {
     collection,
-    collections: collections?.nodes || [],
+    allCollections: allCollectionsResult?.collections?.nodes || [],
   };
 }
 
@@ -77,25 +80,70 @@ function loadDeferredData({context}) {
 
 export default function Collection() {
   /** @type {LoaderReturnData} */
-  const {collection, collections} = useLoaderData();
+  const {collection, allCollections} = useLoaderData();
   const [sortBy, setSortBy] = useState('featured');
   const [gridLayout, setGridLayout] = useState(3);
   const [priceRange, setPriceRange] = useState({min: '', max: ''});
   const [inStockOnly, setInStockOnly] = useState(false);
+  const pageRef = useRef(null);
+  useRevealAnimations(pageRef);
 
-  const productCount = collection.products?.nodes?.length || 0;
+  const rawProducts = collection.products?.nodes || [];
+
+  const filteredAndSorted = (() => {
+    let items = [...rawProducts];
+
+    if (inStockOnly) {
+      items = items.filter((p) => {
+        const firstVariant = p?.variants?.nodes?.[0];
+        return p?.availableForSale && firstVariant?.availableForSale;
+      });
+    }
+
+    const min = priceRange.min ? parseFloat(String(priceRange.min)) : null;
+    const max = priceRange.max ? parseFloat(String(priceRange.max)) : null;
+    if (min != null || max != null) {
+      items = items.filter((p) => {
+        const amount = parseFloat(p?.priceRange?.minVariantPrice?.amount ?? '0');
+        if (min != null && amount < min) return false;
+        if (max != null && amount > max) return false;
+        return true;
+      });
+    }
+
+    if (sortBy === 'price-low') {
+      items.sort((a, b) => parseFloat(a?.priceRange?.minVariantPrice?.amount ?? '0') - parseFloat(b?.priceRange?.minVariantPrice?.amount ?? '0'));
+    } else if (sortBy === 'price-high') {
+      items.sort((a, b) => parseFloat(b?.priceRange?.minVariantPrice?.amount ?? '0') - parseFloat(a?.priceRange?.minVariantPrice?.amount ?? '0'));
+    }
+
+    return items;
+  })();
+
+  const productCount = filteredAndSorted.length;
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20">
-      {/* Hero Section */}
-      <div className="bg-linear-to-r from-pink-500 to-purple-600 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4">
-            Shop All Cutest Plushies
+    <div ref={pageRef} className="min-h-screen bg-gray-50">
+      {/* Hero Section - Contact Page Style */}
+      <div className="relative bg-pink-300 py-20 sm:py-24 md:py-32 overflow-hidden">
+        {/* Background with SVG */}
+        <div className="absolute inset-0 pointer-events-none w-full h-full">
+          <img
+            src={heroBg}
+            alt=""
+            className="object-cover w-full h-full"
+          />
+        </div>
+
+        <div className="relative z-10 max-w-4xl mx-auto px-4 text-center">
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-black text-white mb-4">
+            {collection.title}
           </h1>
-          <p className="text-xl text-white/90 max-w-3xl mx-auto">
-            Lovingly Crafted Plush Friends Designed To Bring Comfort, Joy, And Endless Hugs.
-          </p>
+          {collection.description && (
+            <p className="text-xl sm:text-2xl text-white/90">
+              {collection.description}
+            </p>
+          )}
         </div>
       </div>
 
@@ -104,23 +152,26 @@ export default function Collection() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Left Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-24">
+            <div className="space-y-6 pr-2">
               {/* Shop By Categories */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Shop By Categories</h3>
+              <div className="rounded-2xl p-5 shadow-lg bg-linear-to-br from-rose-50 to-pink-50 border border-rose-100 reveal-panel">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold text-[#c0424e] uppercase tracking-widest">Shop By Categories</h3>
+                  <span className="text-[11px] px-2 py-1 rounded-full bg-white/70 text-[#c0424e] border border-rose-100">{allCollections.length}</span>
+                </div>
                 <div className="space-y-2">
-                  {collections.map((cat) => (
+                  {allCollections.map((cat) => (
                     <Link
                       key={cat.id}
-                      to={`/collections/${cat.handle}`}
-                      className={`flex items-center justify-between py-2 px-3 rounded-md transition-colors ${
+                      to={`/collections/${encodeURIComponent(cat.handle)}`}
+                      className={`flex items-center justify-between py-2.5 px-3 rounded-xl transition-colors border ${
                         cat.handle === collection.handle
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : 'text-gray-700 hover:bg-gray-50'
+                          ? 'bg-white text-[#c0424e] border-rose-200 shadow-sm'
+                          : 'text-gray-700 bg-white/60 hover:bg-white border-transparent'
                       }`}
                     >
-                      <span className="font-medium">{cat.title}</span>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <span className="font-medium truncate">{cat.title}</span>
+                      <svg className="w-4 h-4 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/>
                       </svg>
                     </Link>
@@ -129,49 +180,49 @@ export default function Collection() {
               </div>
 
               {/* Filter by */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Filter by</h3>
+              <div className="rounded-2xl p-5 shadow-lg bg-linear-to-br from-rose-50 to-pink-50 border border-rose-100 reveal-panel">
+                <h3 className="text-sm font-bold text-[#c0424e] uppercase tracking-widest mb-4">Filter by</h3>
                 
                 {/* Availability */}
                 <div className="mb-6">
-                  <h4 className="text-sm font-medium text-gray-700 mb-3">Availability</h4>
+                  <h4 className="text-xs font-semibold text-gray-700 mb-3">Availability</h4>
                   <div className="space-y-2">
-                    <label className="flex items-center">
+                    <label className="flex items-center cursor-pointer">
                       <input
                         type="checkbox"
                         checked={inStockOnly}
                         onChange={(e) => setInStockOnly(e.target.checked)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="rounded-md border-rose-300 text-[#c0424e] focus:ring-[#c0424e]"
                       />
                       <span className="ml-2 text-sm text-gray-600">In stock ({productCount})</span>
                     </label>
-                    <label className="flex items-center">
+                    <label className="flex items-center cursor-pointer">
                       <input
                         type="checkbox"
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="rounded-md border-rose-300 text-[#c0424e] focus:ring-[#c0424e]"
                       />
                       <span className="ml-2 text-sm text-gray-600">Out of stock (0)</span>
                     </label>
                   </div>
-                </div>
+          </div>
 
                 {/* Price Range */}
                 <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-3">Price Range</h4>
+                  <h4 className="text-xs font-semibold text-gray-700 mb-3">Price Range</h4>
                   <div className="grid grid-cols-2 gap-2">
                     <input
                       type="number"
                       placeholder="$ Min"
                       value={priceRange.min}
                       onChange={(e) => setPriceRange({...priceRange, min: e.target.value})}
-                      className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="px-3 py-2 border border-rose-200 rounded-lg text-sm focus:ring-[#c0424e] focus:border-[#c0424e] bg-white/80"
                     />
                     <input
                       type="number"
                       placeholder="$ Max"
                       value={priceRange.max}
                       onChange={(e) => setPriceRange({...priceRange, max: e.target.value})}
-                      className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="px-3 py-2 border border-rose-200 rounded-lg text-sm focus:ring-[#c0424e] focus:border-[#c0424e] bg-white/80"
                     />
                   </div>
                 </div>
@@ -182,45 +233,17 @@ export default function Collection() {
           {/* Right Main Content */}
           <div className="lg:col-span-3">
             {/* Toolbar */}
-            <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-              <div className="flex items-center justify-between">
-                {/* Grid Layout Options */}
-                <div className="flex items-center space-x-2">
-                  {[1, 2, 3, 4].map((cols) => (
-                    <button
-                      key={cols}
-                      onClick={() => setGridLayout(cols)}
-                      className={`p-2 rounded-md transition-colors ${
-                        gridLayout === cols
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-                      }`}
-                    >
-                      <div className={`grid gap-1 ${
-                        cols === 1 ? 'grid-cols-1' :
-                        cols === 2 ? 'grid-cols-2' :
-                        cols === 3 ? 'grid-cols-3' : 'grid-cols-4'
-                      }`}>
-                        {Array.from({length: cols}).map((_, i) => (
-                          <div key={i} className="w-2 h-2 bg-current rounded-sm"></div>
-                        ))}
-                      </div>
-                    </button>
-                  ))}
+            <div className="rounded-2xl p-4 sm:p-5 shadow-lg bg-linear-to-br from-rose-50 to-pink-50 border border-rose-100 mb-6">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="text-xs sm:text-sm font-semibold text-gray-700">
+                  Showing {productCount} products
                 </div>
-
-                {/* Product Count */}
-                <div className="text-sm text-gray-600">
-                  Showing {productCount} of {productCount} products
-                </div>
-
-                {/* Sort By */}
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-600">Sort by:</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-600">Sort by:</span>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:ring-blue-500 focus:border-blue-500"
+                    className="bg-white/90 border border-rose-200 rounded-xl px-3 py-2 text-sm focus:ring-[#c0424e] focus:border-[#c0424e]"
                   >
                     <option value="featured">Featured</option>
                     <option value="price-low">Price: Low to High</option>
@@ -232,40 +255,31 @@ export default function Collection() {
               </div>
             </div>
 
-            {/* Products Grid */}
-            <div className={`grid gap-6 ${
-              gridLayout === 1 ? 'grid-cols-1' :
-              gridLayout === 2 ? 'grid-cols-1 md:grid-cols-2' :
-              gridLayout === 3 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' :
-              'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-            }`}>
-              <PaginatedResourceSection
-                connection={collection.products}
-                resourcesClassName=""
-              >
-                {({node: product, index}) => (
-                  <div key={product.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-                    <ProductItem
-                      product={product}
-                      loading={index < 8 ? 'eager' : undefined}
-                    />
-                  </div>
-                )}
-              </PaginatedResourceSection>
-            </div>
+        {/* Products Grid (3 per row on md and up) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {filteredAndSorted.map((product, index) => (
+              <div key={product.id} className="bg-[#FFDDDD] rounded-[24px] shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-rose-200 reveal-card">
+                <ProductItem
+                  product={product}
+                  loading={index < 8 ? 'eager' : undefined}
+                />
+              </div>
+            ))}
+          </div>
+          
           </div>
         </div>
-      </div>
+        </div>
 
-      {/* Analytics */}
-      <Analytics.CollectionView
-        data={{
-          collection: {
-            id: collection.id,
-            handle: collection.handle,
-          },
-        }}
-      />
+        {/* Analytics */}
+        <Analytics.CollectionView
+          data={{
+            collection: {
+              id: collection.id,
+              handle: collection.handle,
+            },
+          }}
+        />
     </div>
   );
 }

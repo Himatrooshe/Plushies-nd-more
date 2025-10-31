@@ -1,4 +1,5 @@
 import {Analytics, getShopAnalytics, useNonce} from '@shopify/hydrogen';
+import {useEffect} from 'react';
 import {
   Outlet,
   useRouteError,
@@ -10,12 +11,24 @@ import {
   useRouteLoaderData,
 } from 'react-router';
 import favicon from '~/assets/favicon.png';
+import faviconSvg from '~/assets/favicon.svg?url';
 import {FOOTER_QUERY, HEADER_QUERY} from '~/lib/fragments';
 import resetStyles from '~/styles/reset.css?url';
 import appStyles from '~/styles/app.css?url';
 import tailwindCss from './styles/tailwind.css?url';
 import {PageLayout} from './components/PageLayout';
 import {SmoothScrollProvider} from './components/SmoothScrollProvider';
+
+/**
+ * Global default meta for all routes
+ * Individual routes can override this title if needed.
+ * @type {Route.MetaFunction}
+ */
+export const meta = () => {
+  return [
+    {title: 'Plushies & More'},
+  ];
+};
 
 /**
  * This is important to avoid re-fetching root queries on sub-navigations
@@ -69,7 +82,10 @@ export function links() {
       rel: 'stylesheet',
       href: 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Caveat+Brush&display=swap',
     },
+    // Favicon - use the provided PNG as the primary icon everywhere
     {rel: 'icon', type: 'image/png', href: favicon},
+    {rel: 'shortcut icon', href: favicon},
+    {rel: 'apple-touch-icon', href: favicon},
   ];
 }
 

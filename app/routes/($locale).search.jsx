@@ -2,6 +2,9 @@ import {useLoaderData} from 'react-router';
 import {getPaginationVariables, Analytics} from '@shopify/hydrogen';
 import {SearchForm} from '~/components/SearchForm';
 import {SearchResults} from '~/components/SearchResults';
+import {useRef} from 'react';
+import {useRevealAnimations} from '~/components/useRevealAnimations';
+import {ProductItem} from '~/components/ProductItem';
 import {getEmptyPredictiveSearchResult} from '~/lib/search';
 
 /**
@@ -36,39 +39,92 @@ export default function SearchPage() {
   /** @type {LoaderReturnData} */
   const {type, term, result, error} = useLoaderData();
   if (type === 'predictive') return null;
+  const pageRef = useRef(null);
+  useRevealAnimations(pageRef);
+
+  const products = result?.items?.products?.nodes || [];
 
   return (
-    <div className="search">
-      <h1>Search</h1>
-      <SearchForm>
-        {({inputRef}) => (
-          <>
-            <input
-              defaultValue={term}
-              name="q"
-              placeholder="Search…"
-              ref={inputRef}
-              type="search"
-            />
-            &nbsp;
-            <button type="submit">Search</button>
-          </>
+    <div ref={pageRef} className="min-h-screen bg-gray-50">
+      {/* Hero / Toolbar */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 mt-24">
+        <div className="rounded-2xl p-4 sm:p-5 shadow-lg bg-linear-to-br from-rose-50 to-pink-50 border border-rose-100 mb-6 flex items-center justify-between gap-4 flex-wrap">
+          <h1 className="text-lg sm:text-xl font-extrabold text-gray-900">Search results for “{term}”</h1>
+          <div className="text-xs sm:text-sm font-semibold text-gray-700">{result?.total || 0} results</div>
+          <div className="ml-auto"/>
+          <SearchForm>
+            {({inputRef}) => (
+              <div className="flex items-center gap-2">
+                <input
+                  defaultValue={term}
+                  name="q"
+                  placeholder="Search products…"
+                  ref={inputRef}
+                  type="search"
+                  className="w-[220px] sm:w-[280px] md:w-[340px] px-3 py-2 text-sm border-2 border-rose-200 rounded-lg focus:border-[#ff7380] focus:outline-none bg-white/90"
+                />
+                <button type="submit" className="bg-[#ff7380] text-white px-3 py-2 rounded-lg text-sm hover:bg-[#ff5c6c]">Search</button>
+              </div>
+            )}
+          </SearchForm>
+        </div>
+
+        {error && <p className="text-red-600 mb-4">{error}</p>}
+
+        {/* Products Grid */}
+        {products.length === 0 ? (
+          <SearchResults.Empty />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {products.map((p) => {
+              const handle = p.handle || p.selectedOrFirstAvailableVariant?.product?.handle;
+              const title = p.title || p.selectedOrFirstAvailableVariant?.product?.title;
+              const img = p.selectedOrFirstAvailableVariant?.image;
+              const price = p.selectedOrFirstAvailableVariant?.price;
+              if (!handle) return null;
+              const adapted = {
+                id: p.id,
+                handle,
+                title: title || '',
+                availableForSale: true,
+                featuredImage: img
+                  ? {
+                      id: p.id,
+                      altText: img.altText || title || '',
+                      url: img.url,
+                      width: img.width || 800,
+                      height: img.height || 800,
+                    }
+                  : null,
+                priceRange: price
+                  ? {
+                      minVariantPrice: {
+                        amount: price.amount,
+                        currencyCode: price.currencyCode,
+                      },
+                    }
+                  : {minVariantPrice: {amount: '0', currencyCode: 'USD'}},
+                variants: {
+                  nodes: [
+                    {
+                      id: p.selectedOrFirstAvailableVariant?.id || p.id,
+                      availableForSale: true,
+                    },
+                  ],
+                },
+              };
+              return (
+                <div key={p.id} className="flex justify-center">
+                  <div className="bg-[#FFDDDD] rounded-[24px] shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-rose-200 reveal-card">
+                    <ProductItem product={adapted} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
-      </SearchForm>
-      {error && <p style={{color: 'red'}}>{error}</p>}
-      {!term || !result?.total ? (
-        <SearchResults.Empty />
-      ) : (
-        <SearchResults result={result} term={term}>
-          {({articles, pages, products, term}) => (
-            <div>
-              <SearchResults.Products products={products} term={term} />
-              <SearchResults.Pages pages={pages} term={term} />
-              <SearchResults.Articles articles={articles} term={term} />
-            </div>
-          )}
-        </SearchResults>
-      )}
+      </div>
+
       <Analytics.SearchView data={{searchTerm: term, searchResults: result}} />
     </div>
   );

@@ -4,15 +4,19 @@
  */
 
 @import 'tailwindcss';
+@import '@fontsource/caveat-brush/400.css';
 
 @layer base {
-  * {
+  html, body {
     font-family: 'Nunito', sans-serif;
   }
 }
 
 @layer utilities {
   .font-cute {
-    font-family: 'Caveat Brush', cursive;
+    font-family: 'Nunito', sans-serif;
+  }
+  .font-caveat {
+    font-family: 'Caveat Brush', cursive !important;
   }
 }

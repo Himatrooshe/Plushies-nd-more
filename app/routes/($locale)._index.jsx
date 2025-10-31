@@ -1,5 +1,5 @@
 import {Await, useLoaderData, Link} from 'react-router';
-import {Suspense} from 'react';
+import {Suspense, useRef} from 'react';
 import {Image} from '@shopify/hydrogen';
 import {ProductItem} from '~/components/ProductItem';
 import HeroSection from '~/components/HeroSection';
@@ -12,6 +12,7 @@ import SpecialPricesSection from '~/components/SpecialPricesSection';
 import AboutSection from '~/components/AboutSection';
 import TestimonialsSection from '~/components/TestimonialsSection';
 import CTASection from '~/components/CTASection';
+import {useRevealAnimations} from '~/components/useRevealAnimations';
 
 /**
  * @type {Route.MetaFunction}
@@ -72,16 +73,19 @@ function loadDeferredData({context}) {
 export default function Homepage() {
   /** @type {LoaderReturnData} */
   const data = useLoaderData();
+  const pageRef = useRef(null);
+  useRevealAnimations(pageRef);
   return (
-    <div className="home">
-      <HalloweenHeroSection />
-      <CategoriesSection />
-      <HalloweenMostLovedSection products={data.mostLovedProducts} />
-      <NewArrivalsSection products={data.newArrivalsProducts} />
-      <SpecialPricesSection products={data.specialPricesProducts} />
-      <AboutSection />
-      <TestimonialsSection />
-      <CTASection />
+    <div ref={pageRef} className="home">
+      {/* Keep hero unanimated per request */}
+      <HeroSection />
+      <div className="reveal-panel"><CategoriesSection /></div>
+      <div className="reveal-panel"><MostLovedSection products={data.mostLovedProducts} /></div>
+      <div className="reveal-panel"><NewArrivalsSection products={data.newArrivalsProducts} /></div>
+      <div className="reveal-panel"><SpecialPricesSection products={data.specialPricesProducts} /></div>
+      <div className="reveal-panel"><AboutSection /></div>
+      <div className="reveal-panel"><TestimonialsSection /></div>
+      <div className="reveal-panel"><CTASection /></div>
     </div>
   );
 }

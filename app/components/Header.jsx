@@ -8,6 +8,7 @@ import {SEARCH_ENDPOINT} from './SearchFormPredictive';
 import {SearchFormPredictive} from './SearchFormPredictive';
 import {SearchResultsPredictive} from './SearchResultsPredictive';
 import mainLogoUrl from '~/assets/main-logo.svg?url';
+import cartIconUrl from '~/assets/cart-icon.svg?url';
 
 /**
  * @param {HeaderProps}
@@ -329,24 +330,8 @@ function CartBadgeWrapper({open}) {
       onClick={() => open('cart')}
       className="flex items-center gap-1 sm:gap-2 bg-[#ff7380] rounded-[8px] sm:rounded-[11px] px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-3 hover:bg-[#ff5c6c] transition-colors"
     >
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 20 20"
-        fill="none"
-        className="sm:w-5 sm:h-5"
-      >
-        <path
-          d="M2.5 2.5H4.16667L6.66667 13.3333H15.8333L18.3333 5.83333H5.83333"
-          stroke="white"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <circle cx="7.5" cy="17.5" r="1.25" fill="white" />
-        <circle cx="15" cy="17.5" r="1.25" fill="white" />
-      </svg>
-      <span className="text-white font-bold text-xs sm:text-sm md:text-[16px] lowercase tracking-tight">
+      <img src={cartIconUrl} alt="Cart" className="sm:w-6 sm:h-6 w-6 h-6" />
+      <span className="text-white font-bold text-sm sm:text-md md:text-[18px] lowercase tracking-tight leading-none">
         {count}
       </span>
     </button>
@@ -359,18 +344,8 @@ function CartBadgeWrapper({open}) {
 function CartBadge({count}) {
   return (
     <button className="flex items-center gap-1 sm:gap-2 bg-[#ff7380] rounded-[8px] sm:rounded-[11px] px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-3 hover:bg-[#ff5c6c] transition-colors">
-      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" className="sm:w-5 sm:h-5">
-        <path
-          d="M2.5 2.5H4.16667L6.66667 13.3333H15.8333L18.3333 5.83333H5.83333"
-          stroke="white"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <circle cx="7.5" cy="17.5" r="1.25" fill="white" />
-        <circle cx="15" cy="17.5" r="1.25" fill="white" />
-      </svg>
-      <span className="text-white font-bold text-xs sm:text-sm md:text-[16px] lowercase tracking-tight">
+      <img src={cartIconUrl} alt="Cart" className="sm:w-6 sm:h-6 w-6 h-6" />
+      <span className="text-white font-bold text-sm sm:text-md md:text-[18px] lowercase tracking-tight leading-none">
         {count ?? 0}
       </span>
     </button>
@@ -491,27 +466,48 @@ function HeaderSearchInput({onClose}) {
   const fetcher = useFetcher({key: 'search'});
   const [searchValue, setSearchValue] = useState('');
   const inputRef = useRef(null);
+  const navigate = useNavigate();
+  const SEARCH_PATH = 'search'; // use relative route to respect ($locale)
+  const lastTermRef = useRef('');
+  const timeoutRef = useRef(0);
 
-  // Debounce search
+  // Debounced predictive search - only one request per pause, skip repeats
   useEffect(() => {
-    if (searchValue.trim().length < 2) return;
+    const term = searchValue.trim();
+    // clear any pending
+    if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
 
-    const timeoutId = setTimeout(() => {
-      fetcher.submit(
-        {q: searchValue, limit: 10, predictive: true},
-        {method: 'GET', action: SEARCH_ENDPOINT},
-      );
-    }, 300);
+    if (term.length < 2) return;
 
-    return () => clearTimeout(timeoutId);
+    timeoutRef.current = window.setTimeout(() => {
+      if (lastTermRef.current === term) return; // no-op if same term
+      lastTermRef.current = term;
+      const url = `${SEARCH_PATH}?predictive=true&limit=10&q=${encodeURIComponent(term)}`;
+      fetcher.load(url);
+    }, 450);
+
+    return () => {
+      if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+    };
   }, [searchValue, fetcher]);
 
   const results = fetcher?.data?.result;
+  const predictiveTerm = fetcher?.data?.term || '';
 
   return (
     <>
       {/* Search Input */}
-      <div className="relative">
+      <form
+        className="relative"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const term = searchValue.trim();
+          if (term.length > 0) {
+            navigate(`${SEARCH_PATH}?q=${encodeURIComponent(term)}`);
+            onClose();
+          }
+        }}
+      >
         <svg
           className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"
           width="16"
@@ -527,90 +523,79 @@ function HeaderSearchInput({onClose}) {
           type="text"
           value={searchValue}
           onChange={(e) => setSearchValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              onClose();
+            }
+          }}
           placeholder="Search products..."
           className="w-[200px] sm:w-[250px] md:w-[300px] pl-8 sm:pl-10 pr-8 sm:pr-10 py-1.5 sm:py-2 text-xs sm:text-sm border-2 border-gray-300 rounded-lg focus:border-[#ff7380] focus:outline-none transition-colors text-gray-900 placeholder:text-gray-400"
         />
         {searchValue && (
-          <button
-            onClick={() => {
-              setSearchValue('');
-              onClose();
-            }}
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          </button>
+          <>
+            <button
+              type="submit"
+              className="absolute right-8 top-1/2 transform -translate-y-1/2 text-[#ff7380] hover:opacity-80"
+              aria-label="Go to search"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M10 3a7 7 0 105.292 12.292l4.707 4.707 1.414-1.414-4.707-4.707A7 7 0 0010 3zm0 2a5 5 0 110 10 5 5 0 010-10z" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSearchValue('');
+                onClose();
+              }}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              aria-label="Clear"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </button>
+          </>
         )}
-      </div>
+      </form>
 
-      {/* Search Dropdown Results */}
       {searchValue.trim().length >= 2 && results && (
-        <div className="absolute top-full right-0 mt-2 w-[calc(100vw-2rem)] sm:w-[400px] bg-white rounded-xl shadow-2xl border border-gray-200 max-h-[400px] sm:max-h-[500px] overflow-y-auto z-50">
-          {fetcher.state === 'loading' && (
+        <div className="absolute top-full right-0 mt-2 w-[calc(100vw-2rem)] sm:w-[400px] bg-white rounded-xl shadow-2xl border border-gray-200 max-h-[500px] overflow-y-auto z-50">
+          {fetcher.state === 'loading' && predictiveTerm !== searchValue.trim() ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-3 sm:border-4 border-[#ff7380] border-t-transparent"></div>
             </div>
-          )}
-
-          {fetcher.state !== 'loading' && results.total === 0 && (
-            <div className="p-4 sm:p-6 text-center">
-              <p className="text-gray-500 text-sm sm:text-base">
-                No products found for "{searchValue}"
-              </p>
-            </div>
-          )}
-
-          {fetcher.state !== 'loading' && results.products?.length > 0 && (
+          ) : (
             <div className="py-2">
-              {results.products.map((product) => {
+              {(results.items?.products || []).map((product) => {
                 const image = product?.selectedOrFirstAvailableVariant?.image;
                 const price = product?.selectedOrFirstAvailableVariant?.price;
-
                 return (
                   <Link
                     key={product.id}
                     to={`/products/${product.handle}`}
                     onClick={onClose}
-                    className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors"
                   >
-                    {/* Product Image */}
-                    <div className="shrink-0 w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gray-100 rounded-lg overflow-hidden">
+                    <div className="shrink-0 w-14 h-14 bg-gray-100 rounded-lg overflow-hidden">
                       {image ? (
-                        <Image
-                          src={image.url}
-                          alt={image.altText || product.title}
-                          width={64}
-                          height={64}
-                          className="object-cover w-full h-full"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-300">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
-                          </svg>
-                        </div>
-                      )}
+                        <Image src={image.url} alt={image.altText || product.title} width={56} height={56} className="object-cover w-full h-full" />
+                      ) : null}
                     </div>
-
-                    {/* Product Info */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-xs sm:text-sm text-gray-900 truncate">
-                        {product.title}
-                      </h3>
+                      <h3 className="font-semibold text-sm text-gray-900 truncate">{product.title}</h3>
                       {price && (
-                        <p className="text-[#ff7380] font-bold text-xs sm:text-sm mt-0.5 sm:mt-1">
-                          {new Intl.NumberFormat('en-US', {
-                            style: 'currency',
-                            currency: price.currencyCode,
-                          }).format(parseFloat(price.amount))}
+                        <p className="text-[#ff7380] font-bold text-sm">
+                          {new Intl.NumberFormat('en-US', {style: 'currency', currency: price.currencyCode}).format(parseFloat(price.amount))}
                         </p>
                       )}
                     </div>
                   </Link>
                 );
               })}
+              {results.items?.products?.length === 0 && (
+                <div className="p-4 sm:p-6 text-center text-gray-500 text-sm">No results</div>
+              )}
             </div>
           )}
         </div>
