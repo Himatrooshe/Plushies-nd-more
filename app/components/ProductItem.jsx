@@ -5,7 +5,6 @@ import {useAside} from './Aside';
 import {AddToCartButton} from './AddToCartButton';
 import redLoveIcon from '~/assets/red-love.svg?url';
 import hollowCardBg from '~/assets/hollow-card-bg.svg?url';
-import '@fontsource/caveat-brush/400.css';
 
 /**
  * @param {{

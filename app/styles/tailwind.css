@@ -4,7 +4,6 @@
  */
 
 @import 'tailwindcss';
-@import '@fontsource/caveat-brush/400.css';
 
 @layer base {
   html, body {
