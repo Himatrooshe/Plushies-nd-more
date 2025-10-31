@@ -1,9 +1,14 @@
 import {Image} from '@shopify/hydrogen';
 import {Link} from 'react-router';
 import pluse1 from '~/assets/pluse-1.png?url';
-import plush2 from '~/assets/plush-2.png?url';
-import plush3 from '~/assets/plush-3.png?url';
-import plush4 from '~/assets/plush-4.png?url';
+import plush2 from '~/assets/pluse-2.png?url';
+import plush3 from '~/assets/pluse-3.png?url';
+import plush4 from '~/assets/pluse-4.png?url';
+import plush5 from '~/assets/pluse-5.png?url';
+import plush6 from '~/assets/pluse-6.png?url';
+import plush7 from '~/assets/pluse-7.png?url';
+import plush8 from '~/assets/pluse-8.png?url';
+
 
 const categories = [
   {
@@ -37,25 +42,25 @@ const secondRowCategories = [
   {
     id: 'baby-nursery',
     title: 'Baby & Nursery',
-    image: plush2,
+    image: plush5,
     href: '/collections/baby-nursery'
   },
   {
     id: 'bath-bath-toys',
     title: 'Bath & Bath Toys',
-    image: pluse1,
+    image: plush6,
     href: '/collections/bath-bath-toys'
   },
   {
     id: 'character-licensed',
     title: 'Character & Licensed',
-    image: plush4,
+    image: plush7,
     href: '/collections/character-licensed'
   },
   {
     id: 'bath-bath-toys-2',
     title: 'Bath & Bath Toys',
-    image: plush3,
+    image: plush8,
     href: '/collections/bath-bath-toys'
   }
 ];

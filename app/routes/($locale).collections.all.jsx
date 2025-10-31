@@ -331,7 +331,7 @@ const COLLECTIONS_QUERY = `#graphql
       height
     }
   }
-  query StoreCollections(
+  query StoreCollectionsAll(
     $country: CountryCode
     $first: Int!
     $language: LanguageCode

@@ -13,6 +13,7 @@ import {ProductImage} from '~/components/ProductImage';
 import {ProductForm} from '~/components/ProductForm';
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
 import {useRevealAnimations} from '~/components/useRevealAnimations';
+import detailsImg from '~/assets/detials-1.png?url';
 
 /**
  * @type {Route.MetaFunction}
@@ -57,7 +58,6 @@ async function loadCriticalData({context, params, request}) {
     storefront.query(PRODUCT_QUERY, {
       variables: {handle, selectedOptions: getSelectedProductOptions(request)},
     }),
-    // Add other queries here, so that they are loaded in parallel
   ]);
 
   if (!product?.id) {
@@ -67,8 +67,22 @@ async function loadCriticalData({context, params, request}) {
   // The API handle might be localized, so redirect to the localized handle
   redirectIfHandleIsLocalized(request, {handle, data: product});
 
+  // Fetch related products (recommendations)
+  let relatedProducts = {nodes: []};
+  try {
+    if (product?.id) {
+      const rec = await storefront.query(RELATED_PRODUCTS_QUERY, {
+        variables: {productId: product.id},
+      });
+      relatedProducts = rec?.productRecommendations
+        ? {nodes: rec.productRecommendations}
+        : rec?.relatedProducts || {nodes: []};
+    }
+  } catch (_) {}
+
   return {
     product,
+    relatedProducts,
   };
 }
 
@@ -83,6 +97,92 @@ function loadDeferredData({context, params}) {
   // For example: product reviews, product recommendations, social feeds.
 
   return {};
+}
+
+/** Related products carousel component */
+function RelatedCarousel({cards}) {
+  const trackRef = useRef(null);
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(1);
+
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const updateTotals = () => {
+      const pages = Math.max(1, Math.round(el.scrollWidth / el.clientWidth));
+      setTotal(pages);
+      setPage(Math.round(el.scrollLeft / el.clientWidth));
+    };
+    updateTotals();
+    const onScroll = () => setPage(Math.round(el.scrollLeft / el.clientWidth));
+    el.addEventListener('scroll', onScroll, {passive: true});
+    window.addEventListener('resize', updateTotals);
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', updateTotals);
+    };
+  }, []);
+
+  const scrollByPage = (dir) => {
+    const el = trackRef.current;
+    if (!el) return;
+    el.scrollBy({left: dir * el.clientWidth, behavior: 'smooth'});
+  };
+
+  return (
+    <div className="relative">
+      <div
+        ref={trackRef}
+        className="flex gap-6 overflow-x-auto snap-x snap-mandatory px-1"
+        style={{scrollbarWidth: 'none'}}
+      >
+        {cards.map((p) => {
+          const image = p?.featuredImage;
+          const price = p?.priceRange?.minVariantPrice;
+          const priceText = price ? new Intl.NumberFormat('en-US', {style: 'currency', currency: price.currencyCode}).format(parseFloat(price.amount)) : '';
+          return (
+            <div key={p.id} className="w-[260px] sm:w-[280px] lg:w-[300px] flex-none snap-start">
+              <div className="rounded-[20px] border border-rose-100 bg-white overflow-hidden shadow-sm hover:shadow-md transition-all">
+                <div className="relative">
+                  <div className="aspect-square bg-rose-50 flex items-center justify-center overflow-hidden">
+                    {image ? (
+                      <img src={image.url} alt={image.altText || p.title} className="object-cover w-full h-full" />
+                    ) : (
+                      <span className="text-gray-400 text-sm">{p.title}</span>
+                    )}
+                  </div>
+                  <div className="absolute top-3 left-3">
+                    <span className="text-[10px] px-2 py-1 rounded-full bg-white/90 border border-rose-200 text-[#c0424e] font-semibold shadow">Hot Selling ❤️</span>
+                  </div>
+                  <button className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 border border-rose-200 flex items-center justify-center text-[#c0424e] hover:bg-white">❤</button>
+                </div>
+                <div className="p-4">
+                  <h3 className="font-semibold text-gray-900 mb-1 truncate">{p.title}</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm font-bold text-[#ff7380]">{priceText}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <a href={`/products/${p.handle}`} className="flex-1 bg-[#ff7380] hover:bg-[#ff5c6c] text-white px-4 py-2 rounded-full text-sm font-medium text-center transition-colors">Learn More</a>
+                    <button className="ml-2 w-8 h-8 rounded-full bg-white border border-rose-200 text-[#c0424e]">▾</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Controls */}
+      <button onClick={() => scrollByPage(-1)} aria-label="Previous" className="hidden md:flex absolute -left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white border border-rose-200 shadow items-center justify-center text-[#c0424e]">‹</button>
+      <button onClick={() => scrollByPage(1)} aria-label="Next" className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white border border-rose-200 shadow items-center justify-center text-[#c0424e]">›</button>
+
+      <div className="mt-6 flex items-center justify-center gap-2">
+        {Array.from({length: total}).map((_, i) => (
+          <span key={i} className={`h-2 rounded-full transition-all ${i === page ? 'w-6 bg-[#ff7380]' : 'w-2 bg-gray-300'}`}></span>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function Product() {
@@ -106,17 +206,27 @@ export default function Product() {
   });
 
   const {title, descriptionHtml, images} = product;
+  const [activeTab, setActiveTab] = useState('description');
   const pageRef = useRef(null);
   useRevealAnimations(pageRef);
   
   // Extract images from Shopify GraphQL response
   const productImages = images?.edges?.map(edge => edge.node) || [];
+  const cuteFeatures = [
+    { key: 'quality', emoji: '🧸', title: 'Super soft, premium', desc: 'Plush fabric and cloud-like stuffing for extra cuddles', gradient: 'from-rose-50 to-pink-50' },
+    { key: 'handmade', emoji: '🧵', title: 'Lovingly handcrafted', desc: 'Carefully stitched details that last beyond 1,000 hugs', gradient: 'from-amber-50 to-yellow-50' },
+    { key: 'safe', emoji: '🛡️', title: 'Safe for all ages', desc: 'Non-toxic materials and secure seams for peace of mind', gradient: 'from-blue-50 to-cyan-50' },
+    { key: 'wash', emoji: '🫧', title: 'Easy care', desc: 'Machine washable on gentle—ready for more adventures', gradient: 'from-purple-50 to-violet-50' },
+  ];
+  const suggested = (/** @type {any} */ (useLoaderData())).relatedProducts?.nodes || [];
   
   // State for selected image
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  
-  // Use selected variant image as main image, fallback to selected thumbnail image
-  const mainImage = selectedVariant?.image || productImages[selectedImageIndex];
+  // If user clicks a thumbnail, we store the exact image here to override
+  const [manualImage, setManualImage] = useState(null);
+
+  // Prefer user-selected image, otherwise the variant image, then the selected thumbnail
+  const mainImage = manualImage || selectedVariant?.image || productImages[selectedImageIndex];
   
   // When the selected variant has a specific image, sync the thumbnail selection to it
   useEffect(() => {
@@ -126,6 +236,8 @@ export default function Product() {
     if (idx >= 0 && idx !== selectedImageIndex) {
       setSelectedImageIndex(idx);
     }
+    // When variant changes, reset manual image to allow variant image to take precedence
+    setManualImage(null);
   }, [selectedVariant?.image?.id]);
 
   // Heuristic: if variant has no specific image, try match by selected color name in image alt/url
@@ -149,12 +261,13 @@ export default function Product() {
   // Function to handle image selection
   const handleImageSelect = (index) => {
     setSelectedImageIndex(index);
+    setManualImage(productImages[index] || null);
   };
 
   return (
     <div ref={pageRef} className="min-h-screen bg-gray-50 pt-20">
       {/* Breadcrumb Navigation */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-rose-50/40 border-b border-rose-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <nav className="flex items-center space-x-2 text-sm text-gray-500">
             <a href="/" className="hover:text-gray-700">Home</a>
@@ -172,7 +285,7 @@ export default function Product() {
           {/* Product Images */}
           <div className="space-y-4 reveal-panel">
             {/* Main Image */}
-            <div className="aspect-square bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="aspect-square bg-white rounded-2xl shadow-lg border border-rose-100 overflow-hidden">
               {mainImage ? (
                 <ProductImage image={mainImage} />
               ) : (
@@ -188,8 +301,8 @@ export default function Product() {
                 {productImages.map((image, index) => (
                   <div
                     key={image.id}
-                    className={`w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-white rounded-md border overflow-hidden cursor-pointer transition-all duration-200 shrink-0 ${
-                      index === selectedImageIndex ? 'border-blue-500 ring-2 ring-blue-200 scale-105' : 'border-gray-200 hover:border-gray-300 hover:scale-102'
+                    className={`w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-white rounded-xl border overflow-hidden cursor-pointer transition-all duration-200 shrink-0 ${
+                      index === selectedImageIndex ? 'border-rose-300 ring-2 ring-rose-200 scale-105' : 'border-rose-100 hover:border-rose-200 hover:scale-102'
                     }`}
                     onClick={() => handleImageSelect(index)}
                   >
@@ -203,10 +316,12 @@ export default function Product() {
           </div>
 
           {/* Product Information */}
-          <div className="space-y-6 reveal-panel">
+          <div className="space-y-6 reveal-panel bg-white rounded-2xl border border-rose-100 shadow-sm p-6">
             {/* Product Title */}
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{title}</h1>
+              <h1 className="text-3xl sm:text-4xl font-black text-[#c0424e] mb-2 tracking-tight">
+                {title}
+              </h1>
               <div className="flex items-center space-x-4">
                 <div className="flex items-center">
                   <div className="flex text-yellow-400">
@@ -223,10 +338,11 @@ export default function Product() {
             </div>
 
             {/* Price */}
-            <div className="border-t border-b border-gray-200 py-6">
+            <div className="py-2">
               <ProductPrice
                 price={selectedVariant?.price}
                 compareAtPrice={selectedVariant?.compareAtPrice}
+                className=""
               />
             </div>
 
@@ -240,116 +356,267 @@ export default function Product() {
 
             {/* Product Features */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900">Key Features</h3>
-              <ul className="space-y-2">
-                <li className="flex items-center text-sm text-gray-600">
-                  <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-                  </svg>
-                  Premium quality materials
-                </li>
-                <li className="flex items-center text-sm text-gray-600">
-                  <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-                  </svg>
-                  Handcrafted with care
-                </li>
-                <li className="flex items-center text-sm text-gray-600">
-                  <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-                  </svg>
-                  Safe for all ages
-                </li>
-                <li className="flex items-center text-sm text-gray-600">
-                  <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-                  </svg>
-                  Machine washable
-                </li>
-              </ul>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-extrabold text-[#c0424e]">Key Features</h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {cuteFeatures.map((f) => (
+                  <div key={f.key} className={`rounded-2xl border border-rose-100 bg-linear-to-br ${f.gradient} p-4 flex items-start gap-3 hover:shadow-md transition-shadow`}>
+                    <div className="w-10 h-10 rounded-xl bg-white/80 flex items-center justify-center text-lg">
+                      <span aria-hidden>{f.emoji}</span>
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-gray-900">{f.title}</div>
+                      <div className="text-xs text-gray-600 mt-1">{f.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Trust Badges */}
-            <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-200">
-              <div className="text-center">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                  </svg>
-                </div>
-                <div className="text-xs text-gray-600">Free Shipping</div>
-                <div className="text-xs text-gray-500">Over $50</div>
+        {/* Trust Badges - card style */}
+        <div className="pt-6 border-t border-rose-100">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="rounded-2xl border border-rose-100 bg-white p-4 flex items-center gap-3 hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
               </div>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-                  </svg>
+              <div>
+                <div className="text-sm font-semibold text-gray-900">Quality Guaranteed</div>
+                <div className="text-xs text-gray-600">We hand-check every plush</div>
+              </div>
             </div>
-                <div className="text-xs text-gray-600">Easy Returns</div>
-                <div className="text-xs text-gray-500">30 Days</div>
+            <div className="rounded-2xl border border-rose-100 bg-white p-4 flex items-center gap-3 hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 11c1.657 0 3-1.343 3-3S13.657 5 12 5 9 6.343 9 8s1.343 3 3 3zm0 2c-3.866 0-7 2.015-7 4.5V19h14v-1.5c0-2.485-3.134-4.5-7-4.5z"/></svg>
               </div>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                </div>
-                <div className="text-xs text-gray-600">Quality</div>
-                <div className="text-xs text-gray-500">Guaranteed</div>
+              <div>
+                <div className="text-sm font-semibold text-gray-900">Friendly Support</div>
+                <div className="text-xs text-gray-600">Real humans, speedy replies</div>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-rose-100 bg-white p-4 flex items-center gap-3 hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 1l3 5 6 .9-4.5 4.2 1.1 6-5.6-2.9-5.6 2.9 1.1-6L3 6.9 9 6l3-5z"/></svg>
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-gray-900">Secure Checkout</div>
+                <div className="text-xs text-gray-600">Encrypted payments, safe & easy</div>
               </div>
             </div>
           </div>
         </div>
+          </div>
+        </div>
 
         {/* Product Details Tabs */}
-        <div className="mt-16 reveal-panel">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
-              <button className="border-b-2 border-blue-500 py-2 px-1 text-sm font-medium text-blue-600">
-                Description
-              </button>
-              <button className="border-b-2 border-transparent py-2 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                Specifications
-              </button>
-              <button className="border-b-2 border-transparent py-2 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                Reviews (127)
-              </button>
-              <button className="border-b-2 border-transparent py-2 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                Shipping & Returns
-              </button>
+        <div className="mt-16 reveal-panel rounded-2xl border border-rose-100 bg-white/90 p-4 sm:p-6 shadow-sm">
+          <div className="">
+            <nav className="flex flex-wrap gap-2">
+              {[
+                {id: 'description', label: 'Description'},
+                {id: 'specs', label: 'Specifications'},
+                {id: 'reviews', label: 'Reviews (127)'},
+                {id: 'shipping', label: 'Shipping & Returns'},
+              ].map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTab(t.id)}
+                  className={`px-3 py-2 rounded-full text-sm font-medium transition-all border ${
+                    activeTab === t.id
+                      ? 'bg-[#ffedf0] text-[#c0424e] border-rose-200 shadow-sm'
+                      : 'text-gray-600 border-transparent hover:bg-rose-50 hover:text-[#c0424e]'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
             </nav>
           </div>
 
           <div className="py-8">
-            <div className="prose max-w-none">
-              <div dangerouslySetInnerHTML={{__html: descriptionHtml}} />
-            </div>
+            {activeTab === 'description' && (
+              <div className="space-y-6">
+                <div className="rounded-2xl border border-rose-100 bg-rose-50/40 p-5 sm:p-6 leading-7 text-gray-800">
+                  <div className="space-y-3">
+                    <div className="whitespace-pre-line" dangerouslySetInnerHTML={{__html: descriptionHtml}} />
+                  </div>
+                </div>
+                {/* Why You'll Love It */}
+                <section className="rounded-2xl border border-rose-100 bg-white p-5 sm:p-6">
+                  <div className="mb-4">
+                    <span className="px-2 py-0.5 rounded-full bg-[#ffedf0] border border-rose-200 text-[#c0424e] text-xs font-semibold">Features</span>
+                    <h3 className="mt-2 text-2xl sm:text-3xl font-extrabold text-gray-900">Why You’ll Love It</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    {/* Left list */}
+                    <ul className="space-y-3">
+                      <li className="p-3 rounded-xl bg-rose-50/70 border border-rose-100">
+                        <div className="text-sm font-semibold text-gray-900">Material</div>
+                        <div className="text-xs text-gray-600">Premium ultra-soft cotton + PP cotton stuffing</div>
+                      </li>
+                      <li className="p-3 rounded-xl bg-rose-50/70 border border-rose-100">
+                        <div className="text-sm font-semibold text-gray-900">Size Options</div>
+                      </li>
+                      <li className="p-3 rounded-xl bg-rose-50/70 border border-rose-100">
+                        <div className="text-sm font-semibold text-gray-900">Age</div>
+                        <div className="text-xs text-gray-600">Suitable for 3+ years</div>
+                      </li>
+                      <li className="p-3 rounded-xl bg-rose-50/70 border border-rose-100">
+                        <div className="text-sm font-semibold text-gray-900">Care</div>
+                        <div className="text-xs text-gray-600">Hand washable, air dry</div>
+                      </li>
+                      <li className="p-3 rounded-xl bg-rose-50/70 border border-rose-100">
+                        <div className="text-sm font-semibold text-gray-900">Perfect For</div>
+                        <div className="text-xs text-gray-600">Gifting, snuggling, décor</div>
+                      </li>
+                    </ul>
+                    {/* Right image */}
+                    <div className="rounded-2xl overflow-hidden border border-rose-100">
+                      <img src={detailsImg} alt="Plush fabric details" className="w-full h-full object-cover" />
+                    </div>
+                  </div>
+                </section>
+              </div>
+            )}
+            {activeTab === 'specs' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="rounded-xl border border-rose-100 bg-rose-50/40 p-4">
+                  <div className="text-xs text-gray-500 mb-1">Brand</div>
+                  <div className="text-sm font-medium text-gray-800">{product.vendor || 'Plushies & More'}</div>
+                </div>
+                <div className="rounded-xl border border-rose-100 bg-rose-50/40 p-4">
+                  <div className="text-xs text-gray-500 mb-1">SKU</div>
+                  <div className="text-sm font-medium text-gray-800">{selectedVariant?.sku || 'N/A'}</div>
+                </div>
+                <div className="rounded-xl border border-rose-100 bg-rose-50/40 p-4">
+                  <div className="text-xs text-gray-500 mb-1">Material</div>
+                  <div className="text-sm font-medium text-gray-800">Plush, PP Cotton</div>
+                </div>
+                <div className="rounded-xl border border-rose-100 bg-rose-50/40 p-4">
+                  <div className="text-xs text-gray-500 mb-1">Care</div>
+                  <div className="text-sm font-medium text-gray-800">Machine washable (gentle)</div>
+                </div>
+              </div>
+            )}
+            {activeTab === 'reviews' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Left side - Reviews List */}
+                <div className="rounded-2xl border border-rose-100 bg-white/80 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-bold text-gray-900">Reviews</h4>
+                    <button className="flex items-center gap-1 px-3 py-1 rounded-full border border-rose-200 text-sm text-gray-700 hover:bg-rose-50">
+                      Recent
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    {[
+                      {name: 'Jenny Osborn', avatar: '👤', time: '5 days ago', stars: 5, text: 'I recently purchased the SkyLuxe Wireless Headphones and am absolutely blown away by the experience! From the moment I unboxed them, I could tell they were built with top-notch quality.'},
+                      {name: 'Sarah Chen', avatar: '👤', time: '2 weeks ago', stars: 5, text: 'Best plushies ever! My daughter absolutely loves them. The quality is amazing and they\'re so cuddly.'},
+                      {name: 'Mike Johnson', avatar: '👤', time: '1 month ago', stars: 4, text: 'Great product, fast shipping. Only gave 4 stars because I wish there were more color options.'},
+                    ].map((r, i) => (
+                      <div key={i} className="pb-4 border-b border-rose-100 last:border-0">
+                        <div className="flex items-start gap-3 mb-2">
+                          <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-lg">{r.avatar}</div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-semibold text-gray-900">{r.name}</span>
+                              <span className="text-xs text-gray-500">{r.time}</span>
+                            </div>
+                            <div className="flex items-center gap-1 mb-2">
+                              {Array.from({length: 5}).map((_, idx) => (
+                                <svg key={idx} className="w-4 h-4 fill-red-500" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                              ))}
+                            </div>
+                            <p className="text-sm text-gray-700">{r.text}</p>
+                            <div className="flex items-center gap-4 mt-3">
+                              <button className="text-gray-400 hover:text-gray-600 text-xs flex items-center gap-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/></svg> Like</button>
+                              <button className="text-gray-400 hover:text-gray-600 text-xs flex items-center gap-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg> Reply</button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Right side - Rating breakdown + Write review */}
+                <div className="space-y-6">
+                  {/* Rating breakdown */}
+                  <div className="rounded-2xl border border-rose-100 bg-white/80 p-6">
+                    <h4 className="text-lg font-bold text-gray-900 mb-4">Rating & Reviews</h4>
+                    <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center mb-2">
+                      <span className="text-xs text-gray-600">5</span>
+                      <div className="h-2 rounded-full bg-gray-200 overflow-hidden"><div className="h-full bg-red-500 w-full"></div></div>
+                      <span className="text-xs text-gray-600">400</span>
+                    </div>
+                    <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center mb-2">
+                      <span className="text-xs text-gray-600">4</span>
+                      <div className="h-2 rounded-full bg-gray-200 overflow-hidden"><div className="h-full bg-red-400 w-3/4"></div></div>
+                      <span className="text-xs text-gray-600">60</span>
+                    </div>
+                    <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center mb-2">
+                      <span className="text-xs text-gray-600">3</span>
+                      <div className="h-2 rounded-full bg-gray-200 overflow-hidden"><div className="h-full bg-orange-400 w-1/2"></div></div>
+                      <span className="text-xs text-gray-600">25</span>
+                    </div>
+                    <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center mb-2">
+                      <span className="text-xs text-gray-600">2</span>
+                      <div className="h-2 rounded-full bg-gray-200 overflow-hidden"><div className="h-full bg-yellow-400 w-1/4"></div></div>
+                      <span className="text-xs text-gray-600">10</span>
+                    </div>
+                    <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center mb-4">
+                      <span className="text-xs text-gray-600">1</span>
+                      <div className="h-2 rounded-full bg-gray-200 overflow-hidden"><div className="h-full bg-gray-400 w-[10%]"></div></div>
+                      <span className="text-xs text-gray-600">5</span>
+                    </div>
+                    <div className="border-t border-rose-100 pt-4">
+                      <div className="text-center">
+                        <div className="text-4xl font-black text-gray-900 mb-1">5.0</div>
+                        <div className="flex items-center justify-center gap-1 mb-2">
+                          {Array.from({length: 5}).map((_, idx) => (
+                            <svg key={idx} className="w-5 h-5 fill-red-500" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                          ))}
+                        </div>
+                        <span className="text-sm text-gray-600">500 reviews</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Write a review */}
+                  <div className="rounded-2xl border border-rose-100 bg-white/80 p-6">
+                    <h4 className="text-lg font-bold text-gray-900 mb-2">Write a Review</h4>
+                    <p className="text-xs text-gray-600 mb-4">Tell us your experience</p>
+                    <textarea className="w-full h-24 rounded-xl border border-rose-200 p-3 text-sm bg-rose-50/50 focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="Tell us your experience"></textarea>
+                    <div className="mt-4 flex justify-end">
+                      <button className="px-4 py-2 rounded-full bg-red-500 text-white text-sm font-semibold flex items-center gap-2 hover:bg-red-600 transition-colors">
+                        Post it <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {activeTab === 'shipping' && (
+              <div className="text-sm text-gray-700 space-y-2">
+                <p>Orders ship within 1–3 business days. Tracking provided.</p>
+                <p>Hassle-free returns within 30 days for unused items.</p>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Related Products */}
         <div className="mt-16 reveal-panel">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8">You might also like</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map((item) => (
-              <div key={item} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow reveal-card">
-                <div className="aspect-square bg-gray-100 flex items-center justify-center">
-                  <span className="text-gray-400">Product {item}</span>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-medium text-gray-900 mb-2">Related Product {item}</h3>
-                  <p className="text-sm text-gray-600 mb-3">Perfect companion item</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-lg font-semibold text-gray-900">$29.99</span>
-                    <button className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">
-                      Add to Cart
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="text-center mb-6">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">More Adorable Friends You’ll Love</h2>
+            <p className="mt-2 text-sm text-gray-500 max-w-3xl mx-auto">
+              Say hello to the latest cuteness! Perfect gifts or sweet treats for yourself. Don’t miss out—our new cuties sell fast!
+            </p>
           </div>
+          {/* Carousel */}
+          <RelatedCarousel cards={suggested} />
         </div>
       </div>
 
@@ -474,6 +741,27 @@ const PRODUCT_QUERY = `#graphql
     }
   }
   ${PRODUCT_FRAGMENT}
+`;
+
+const RELATED_PRODUCTS_QUERY = `#graphql
+  fragment RelatedProductImage on Image {
+    id
+    url
+    altText
+    width
+    height
+  }
+  query RelatedProducts($productId: ID!) {
+    productRecommendations(productId: $productId) {
+      id
+      title
+      handle
+      featuredImage { ...RelatedProductImage }
+      priceRange {
+        minVariantPrice { amount currencyCode }
+      }
+    }
+  }
 `;
 
 /** @typedef {import('./+types/products.$handle').Route} Route */

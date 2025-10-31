@@ -1,106 +1,8 @@
 import {Image} from '@shopify/hydrogen';
 import {Link} from 'react-router';
 import Button from './Button';
-import {useState, useEffect} from 'react';
 import heroBg from '~/assets/hero-bg.svg?url';
 import heroCute from '~/assets/hero-cute.png?url';
-import pluse1 from '~/assets/pluse-1.png?url';
-import plush2 from '~/assets/plush-2.png?url';
-import plush3 from '~/assets/plush-3.png?url';
-import plush4 from '~/assets/plush-4.png?url';
-
-// Product Image Slider Component
-function ProductImageSlider() {
-  const [offset, setOffset] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-
-  // Product images data
-  const products = [
-    {src: pluse1, alt: 'Cute Dinosaur Plush', name: 'Dino Buddy'},
-    {src: plush2, alt: 'Adorable Sheep Plush', name: 'Sheep Friend'},
-    {src: plush3, alt: 'Sweet Fox Plush', name: 'Fox Cutie'},
-    {src: plush4, alt: 'Cuddly Panda Plush', name: 'Panda Hug'},
-    {src: pluse1, alt: 'Cute Dinosaur Plush', name: 'Dino Buddy'},
-    {src: plush2, alt: 'Adorable Sheep Plush', name: 'Sheep Friend'},
-  ];
-
-  // Continuous smooth scrolling effect
-  useEffect(() => {
-    if (isPaused) return;
-
-    const scrollSpeed = 0.3; // Slower than testimonials for better viewing
-    let animationFrameId;
-
-    const animate = () => {
-      setOffset((prevOffset) => {
-        const newOffset = prevOffset + scrollSpeed;
-        const cardWidth = 320; // Each product card width
-        const totalWidth = products.length * cardWidth;
-
-        if (newOffset >= totalWidth) {
-          return 0;
-        }
-        return newOffset;
-      });
-
-      animationFrameId = requestAnimationFrame(animate);
-    };
-
-    animationFrameId = requestAnimationFrame(animate);
-
-    return () => {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
-    };
-  }, [isPaused, products.length]);
-
-  // Triple the products for seamless infinite loop
-  const infiniteProducts = [...products, ...products, ...products];
-
-  return (
-    <div className="relative w-full px-4 sm:px-6 md:px-8">
-      {/* Product Carousel - Continuous Scrolling */}
-      <div
-        className="relative overflow-hidden"
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
-      >
-        <div
-          className="flex gap-4 sm:gap-6"
-          style={{
-            transform: `translateX(-${offset}px)`,
-            transition: 'none',
-            willChange: 'transform',
-          }}
-        >
-          {infiniteProducts.map((product, index) => (
-            <div key={`${product.name}-${index}`} className="shrink-0 w-[240px] sm:w-[280px] md:w-[300px]">
-              <div className="bg-white/95 backdrop-blur-sm rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-lg border border-pink-100 relative h-full">
-                {/* Product Image */}
-                <div className="relative w-full h-48 sm:h-56 md:h-64 mb-3 sm:mb-4 rounded-lg sm:rounded-xl overflow-hidden">
-                  <img
-                    src={product.src}
-                    alt={product.alt}
-                    className="object-cover w-full h-full"
-                  />
-                </div>
-
-                {/* Product Name */}
-                <div className="text-center">
-                  <h3 className="text-gray-900 font-semibold text-sm sm:text-base md:text-lg mb-2">
-                    {product.name}
-                  </h3>
-                  <div className="w-6 sm:w-8 h-1 bg-pink-300 rounded-full mx-auto"></div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function HeroSection() {
   return (
@@ -151,16 +53,16 @@ export default function HeroSection() {
         <div className="text-center flex-1 flex flex-col justify-end pb-2">
           <h1 className="font-black text-white leading-tight tracking-tight font-cute">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 mb-2">
-              <span className="block text-3xl sm:text-5xl md:text-6xl lg:text-8xl">Discover</span>
+              <span className="block text-7xl sm:text-5xl md:text-6xl lg:text-8xl">Discover</span>
               <img
                 src={heroCute}
                 alt="Cute plushies"
-                className="w-[120px] h-auto sm:w-[180px] md:w-[220px] lg:w-[280px] rounded-full"
+                className="w-[220px] h-auto sm:w-[180px] md:w-[220px] lg:w-[280px] rounded-full"
               />
-              <span className="block text-3xl sm:text-5xl md:text-6xl lg:text-8xl">Cutest</span>
+              <span className="block text-7xl sm:text-5xl md:text-6xl lg:text-8xl">Cutest</span>
             </div>
             <div className="text-center">
-              <span className="block text-xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-8xl px-2">
+              <span className="block text-5xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-8xl px-2">
                 Plushies & Adorable Gifts
               </span>
             </div>
@@ -176,13 +78,8 @@ export default function HeroSection() {
         </div>
       </div>
 
-      {/* Product Image Slider - Full Width */}
-      <div className="w-full py-4">
-        <ProductImageSlider />
-      </div>
-
-      {/* CTA Button - Below Slider */}
-      <div className="flex justify-center py-4 sm:py-6 px-4">
+      {/* CTA Button */}
+      <div className="flex justify-center py-8 sm:py-12 px-4">
         <Button href="/collections/all" variant="primary" size="medium">
           Shop Bestsellers
         </Button>

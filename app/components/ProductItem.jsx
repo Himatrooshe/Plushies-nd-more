@@ -32,7 +32,7 @@ export function ProductItem({product, loading}) {
   };
 
   return (
-    <div className="h-[420px] w-[280px] relative rounded-[24px] overflow-hidden bg-[#FFDDDD]">
+    <div className="h-[440px] w-[280px] relative rounded-[24px] overflow-hidden bg-[#FFDDDD]">
 
         {/* Product Image - Clickable */}
         <Link to={variantUrl} className="absolute top-0 left-0 w-full h-[240px] cursor-pointer z-10">
@@ -56,7 +56,7 @@ export function ProductItem({product, loading}) {
         {/* Content under image: title, hearts, price, button */}
         <div className="absolute left-1/2 top-[260px] -translate-x-1/2 w-[240px] flex flex-col items-center gap-2 z-20 h-[140px]">
           <Link to={variantUrl} className="block w-full">
-            <h3 className="text-black text-[16px] font-bold leading-[22px] tracking-[-0.8px] text-center capitalize hover:text-[#c0424e] transition-colors cursor-pointer">
+            <h3 className="text-[#FF6F91] text-[16px] font-bold leading-[22px] tracking-[-0.8px] text-center capitalize hover:text-[#c0424e] transition-colors cursor-pointer h-[44px] overflow-hidden">
               {product.title}
             </h3>
           </Link>

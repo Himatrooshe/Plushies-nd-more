@@ -1,4 +1,5 @@
 import {Link, useNavigate} from 'react-router';
+import {useState} from 'react';
 import {AddToCartButton} from './AddToCartButton';
 import {useAside} from './Aside';
 
@@ -11,6 +12,9 @@ import {useAside} from './Aside';
 export function ProductForm({productOptions, selectedVariant}) {
   const navigate = useNavigate();
   const {open} = useAside();
+  const [quantity, setQuantity] = useState(1);
+  const increment = () => setQuantity((q) => Math.min(99, q + 1));
+  const decrement = () => setQuantity((q) => Math.max(1, q - 1));
   return (
     <div className="product-form">
       {productOptions.map((option) => {
@@ -19,8 +23,8 @@ export function ProductForm({productOptions, selectedVariant}) {
 
         return (
           <div className="product-options" key={option.name}>
-            <h5>{option.name}</h5>
-            <div className="product-options-grid">
+            <h5 className="text-sm font-bold text-[#c0424e] mb-2">{option.name}</h5>
+            <div className="product-options-grid grid grid-cols-1 sm:grid-cols-2 gap-3">
               {option.optionValues.map((value) => {
                 const {
                   name,
@@ -40,19 +44,16 @@ export function ProductForm({productOptions, selectedVariant}) {
                   // as an anchor tag
                   return (
                     <Link
-                      className="product-options-item"
+                      className={`product-options-item group inline-flex items-center justify-between w-full rounded-xl px-4 py-2.5 border transition-all duration-200 shadow-sm bg-white/90 hover:bg-white ${selected ? 'border-rose-300 ring-2 ring-rose-200' : 'border-rose-100 hover:border-rose-200'} ${available ? 'opacity-100' : 'opacity-30'}`}
                       key={option.name + name}
                       prefetch="intent"
                       preventScrollReset
                       replace
                       to={`/products/${handle}?${variantUriQuery}`}
-                      style={{
-                        border: selected
-                          ? '1px solid black'
-                          : '1px solid transparent',
-                        opacity: available ? 1 : 0.3,
-                      }}
                     >
+                      <span className="text-[13px] sm:text-sm font-medium text-gray-800">
+                        {name}
+                      </span>
                       <ProductOptionSwatch swatch={swatch} name={name} />
                     </Link>
                   );
@@ -65,16 +66,8 @@ export function ProductForm({productOptions, selectedVariant}) {
                   return (
                     <button
                       type="button"
-                      className={`product-options-item${
-                        exists && !selected ? ' link' : ''
-                      }`}
+                      className={`product-options-item group inline-flex items-center justify-between w-full rounded-xl px-4 py-2.5 border transition-all duration-200 shadow-sm bg-white/90 ${selected ? 'border-rose-300 ring-2 ring-rose-200' : 'border-rose-100 hover:border-rose-200 hover:bg-white'} ${exists && !selected ? 'cursor-pointer' : ''} ${available ? 'opacity-100' : 'opacity-30'}`}
                       key={option.name + name}
-                      style={{
-                        border: selected
-                          ? '1px solid black'
-                          : '1px solid transparent',
-                        opacity: available ? 1 : 0.3,
-                      }}
                       disabled={!exists}
                       onClick={() => {
                         if (!selected) {
@@ -85,6 +78,9 @@ export function ProductForm({productOptions, selectedVariant}) {
                         }
                       }}
                     >
+                      <span className="text-[13px] sm:text-sm font-medium text-gray-800">
+                        {name}
+                      </span>
                       <ProductOptionSwatch swatch={swatch} name={name} />
                     </button>
                   );
@@ -95,6 +91,25 @@ export function ProductForm({productOptions, selectedVariant}) {
           </div>
         );
       })}
+      {/* Quantity + Add to Cart */}
+      <div className="flex items-stretch gap-4 w-full">
+        <div className="inline-flex items-center bg-white/90 border border-rose-200 rounded-full overflow-hidden h-14">
+          <button type="button" onClick={decrement} className="px-4 text-[#c0424e] hover:bg-rose-50 disabled:opacity-50 h-full text-xl" disabled={quantity <= 1} aria-label="Decrease quantity">−</button>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={99}
+            value={quantity}
+            onChange={(e) => {
+              const v = parseInt(e.target.value || '1', 10);
+              if (Number.isFinite(v)) setQuantity(Math.min(99, Math.max(1, v)));
+            }}
+            className="w-16 text-center outline-none bg-transparent text-gray-900 h-full text-lg"
+            aria-label="Quantity"
+          />
+          <button type="button" onClick={increment} className="px-4 text-[#c0424e] hover:bg-rose-50 h-full text-xl" aria-label="Increase quantity">+</button>
+        </div>
       <AddToCartButton
         onClick={() => {
           open('cart');
@@ -104,7 +119,7 @@ export function ProductForm({productOptions, selectedVariant}) {
             ? [
                 {
                   merchandiseId: selectedVariant.id,
-                  quantity: 1,
+                  quantity,
                   selectedVariant,
                 },
               ]
@@ -115,9 +130,9 @@ export function ProductForm({productOptions, selectedVariant}) {
           <button
             type="submit"
             disabled={!selectedVariant?.availableForSale || fetcher.state !== 'idle'}
-            className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-all duration-200 flex items-center justify-center gap-3 ${
+            className={`flex-1 h-14 px-7 rounded-[14px] font-semibold text-xl transition-colors duration-200 flex items-center justify-center gap-3 ${
               selectedVariant?.availableForSale
-                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95'
+                ? 'bg-[#ff7380] hover:bg-[#ff5c6c] text-white shadow-lg border border-rose-200'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             } ${
               fetcher.state !== 'idle' ? 'opacity-70 cursor-wait' : ''
@@ -133,9 +148,7 @@ export function ProductForm({productOptions, selectedVariant}) {
               </>
             ) : selectedVariant?.availableForSale ? (
               <>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01"></path>
-                </svg>
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M16 11V6a2 2 0 00-2-2H6a2 2 0 00-2 2v5H2l2 5h12l2-5h-2zm-8 0V6h4v5H8z" /></svg>
                 Add to Cart
               </>
             ) : (
@@ -149,6 +162,7 @@ export function ProductForm({productOptions, selectedVariant}) {
           </button>
         )}
       </AddToCartButton>
+      </div>
     </div>
   );
 }
@@ -168,12 +182,12 @@ function ProductOptionSwatch({swatch, name}) {
   return (
     <div
       aria-label={name}
-      className="product-option-label-swatch"
+      className="product-option-label-swatch ml-3 inline-flex items-center justify-center w-7 h-7 rounded-full border border-rose-200 overflow-hidden shadow-sm"
       style={{
         backgroundColor: color || 'transparent',
       }}
     >
-      {!!image && <img src={image} alt={name} />}
+      {!!image && <img src={image} alt={name} className="w-full h-full object-cover" />}
     </div>
   );
 }

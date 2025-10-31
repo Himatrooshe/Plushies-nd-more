@@ -1,4 +1,4 @@
-import {useState, useRef} from 'react';
+import {useState, useRef, useEffect} from 'react';
 import Button from './Button';
 import {ProductItem} from './ProductItem';
 import mostLovedBg from '~/assets/most-loved-bg.svg?url';
@@ -7,7 +7,6 @@ import starIcon from '~/assets/Star 1.svg?url';
 export default function MostLovedSection({products = []}) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollRef = useRef(null);
-  const cardWidth = 320; // Approximate card width with gap
 
   const goToSlide = (index) => {
     setCurrentIndex(index);
@@ -17,8 +16,25 @@ export default function MostLovedSection({products = []}) {
     return null;
   }
 
-  const slidesToShow = Math.min(products.length, 4);
-  const totalSlides = Math.ceil(products.length / slidesToShow);
+  // Responsive slides per page
+  const [slidesPerPage, setSlidesPerPage] = useState(4);
+  
+  useEffect(() => {
+    const updateSlidesPerPage = () => {
+      if (window.innerWidth < 640) setSlidesPerPage(1); // mobile
+      else if (window.innerWidth < 1024) setSlidesPerPage(2); // tablet
+      else setSlidesPerPage(4); // desktop
+    };
+    updateSlidesPerPage();
+    window.addEventListener('resize', updateSlidesPerPage);
+    return () => window.removeEventListener('resize', updateSlidesPerPage);
+  }, []);
+
+  const pages = [];
+  for (let i = 0; i < products.length; i += slidesPerPage) {
+    pages.push(products.slice(i, i + slidesPerPage));
+  }
+  const totalSlides = pages.length;
 
   return (
     <>
@@ -71,22 +87,25 @@ export default function MostLovedSection({products = []}) {
             </div>
           </div>
 
-          {/* Product Cards Section - Manual Slides */}
+          {/* Product Cards Section - Slideshow per page of 4 (no peeking) */}
           <div className="flex flex-col items-center">
-            <div
-              ref={scrollRef}
-              className="relative overflow-hidden w-full"
-            >
+            <div ref={scrollRef} className="relative overflow-hidden w-full">
               <div
-                className="flex gap-4 sm:gap-6 transition-transform duration-500 ease-in-out"
-                style={{
-                  transform: `translateX(-${currentIndex * cardWidth * slidesToShow}px)`,
-                  willChange: 'transform',
-                }}
+                className="flex transition-transform duration-500 ease-in-out"
+                style={{ transform: `translateX(-${currentIndex * 100}%)` }}
               >
-                {products.map((product, index) => (
-                  <div key={product.id} className="shrink-0">
-                    <ProductItem product={product} loading={index < 4 ? 'eager' : 'lazy'} />
+                {pages.map((page, pageIndex) => (
+                  <div key={pageIndex} className="min-w-full">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                      {page.map((product, index) => (
+                        <div key={product.id} className="flex justify-center">
+                          <ProductItem
+                            product={product}
+                            loading={index < 4 ? 'eager' : 'lazy'}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>

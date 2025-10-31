@@ -9,6 +9,7 @@ import {SearchFormPredictive} from './SearchFormPredictive';
 import {SearchResultsPredictive} from './SearchResultsPredictive';
 import mainLogoUrl from '~/assets/main-logo.svg?url';
 import cartIconUrl from '~/assets/cart-icon.svg?url';
+import CategoriesMegaMenu from './CategoriesMegaMenu';
 
 /**
  * @param {HeaderProps}
@@ -16,10 +17,12 @@ import cartIconUrl from '~/assets/cart-icon.svg?url';
 export function Header({header, isLoggedIn, cart, publicStoreDomain}) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isShopOpen, setIsShopOpen] = useState(false);
   const searchRef = useRef(null);
   const headerRef = useRef(null);
   const lastScrollY = useRef(0);
   const navigate = useNavigate();
+  const closeTimeoutRef = useRef(0);
 
   // Header scroll animation with GSAP
   useEffect(() => {
@@ -128,11 +131,19 @@ export function Header({header, isLoggedIn, cart, publicStoreDomain}) {
           </button>
 
           {/* Left Section - Shop & Navigation (Hidden on mobile) */}
-          <div className="hidden md:flex items-center gap-6 lg:gap-10 flex-1">
+          <div className="hidden md:flex items-center gap-6 lg:gap-10 flex-1 relative">
             {/* Shop Button */}
             <Link
               to="/collections/all"
               className="flex items-center gap-1.5 bg-[rgba(192,66,78,0.24)] border border-[rgba(192,66,78,0.1)] rounded-[8px] sm:rounded-[11px] px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-3 hover:bg-[rgba(192,66,78,0.35)] transition-colors"
+              onMouseEnter={() => {
+                if (closeTimeoutRef.current) window.clearTimeout(closeTimeoutRef.current);
+                setIsShopOpen(true);
+              }}
+              onMouseLeave={() => {
+                if (closeTimeoutRef.current) window.clearTimeout(closeTimeoutRef.current);
+                closeTimeoutRef.current = window.setTimeout(() => setIsShopOpen(false), 200);
+              }}
             >
               <span className="text-[#c0424e] font-bold text-xs sm:text-sm md:text-[16px] tracking-tight">
                 Shop
@@ -142,17 +153,23 @@ export function Header({header, isLoggedIn, cart, publicStoreDomain}) {
                 height="16"
                 viewBox="0 0 24 24"
                 fill="none"
-                className="text-[#c0424e] hidden sm:block"
+                className={`text-[#c0424e] hidden sm:block transition-transform ${isShopOpen ? 'rotate-180' : ''}`}
               >
-                <path
-                  d="M12 5V19M5 12H19"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </Link>
+            {isShopOpen && (
+              <CategoriesMegaMenu 
+                onNavigate={() => setIsShopOpen(false)}
+                onMouseEnter={() => {
+                  if (closeTimeoutRef.current) window.clearTimeout(closeTimeoutRef.current);
+                }}
+                onMouseLeave={() => {
+                  if (closeTimeoutRef.current) window.clearTimeout(closeTimeoutRef.current);
+                  closeTimeoutRef.current = window.setTimeout(() => setIsShopOpen(false), 200);
+                }}
+              />
+            )}
 
             {/* Navigation Links - Hidden on tablet */}
             <nav className="hidden lg:flex items-center gap-12 xl:gap-16">
@@ -183,8 +200,8 @@ export function Header({header, isLoggedIn, cart, publicStoreDomain}) {
             </nav>
           </div>
 
-          {/* Center - Logo (Absolutely Centered) */}
-          <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
+          {/* Center - Logo (hide on mobile when search is open) */}
+          <div className={`absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 ${isSearchOpen ? 'opacity-0 pointer-events-none md:opacity-100 md:pointer-events-auto' : ''}`}>
             <Link to="/">
               <img
                 src={mainLogoUrl}
