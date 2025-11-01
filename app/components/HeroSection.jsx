@@ -1,7 +1,7 @@
 import {Image} from '@shopify/hydrogen';
 import {Link} from 'react-router';
 import Button from './Button';
-import heroBg from '~/assets/hero-bg.svg?url';
+import heroBg from '~/assets/Hero.svg?url';
 import heroCute from '~/assets/hero-cute.png?url';
 
 export default function HeroSection() {
