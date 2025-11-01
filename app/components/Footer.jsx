@@ -42,16 +42,13 @@ export function Footer({footer: footerPromise, header, publicStoreDomain}) {
               {/* Newsletter Section - Left Side */}
               <div className="lg:max-w-md">
                 <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">
-                  Get 15% Off Your Order!
+                  Stay Connected
                 </h3>
                 <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4 leading-relaxed">
-                  Sign up for email and get 15% off your first new subscriber
-                  order + free shipping over $35*.
+                  Subscribe to our newsletter for updates on new products, special announcements, and exclusive content.
                 </p>
                 <p className="text-[10px] sm:text-xs text-gray-500 mb-3 sm:mb-4">
-                  15% off is valid for new purchases & our first purchase only
-                  after signing up and clicking the link in the validation email
-                  from us. You must have valid email acknowledged our{' '}
+                  By subscribing, you agree to our{' '}
                   <Link to="/policies/privacy-policy" className="underline">
                     privacy policy
                   </Link>

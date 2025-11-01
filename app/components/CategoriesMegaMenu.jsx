@@ -20,18 +20,22 @@ const categories = [
 
 export default function CategoriesMegaMenu({onNavigate, onMouseEnter, onMouseLeave}) {
   return (
-    <div className="absolute left-0 right-0 top-full mt-1 px-4" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
-      <div className="bg-white rounded-[16px] border border-rose-100 shadow-xl p-4 sm:p-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+    <div 
+      className="absolute left-0 top-full mt-1" 
+      onMouseEnter={onMouseEnter} 
+      onMouseLeave={onMouseLeave}
+    >
+      <div className="bg-white rounded-[16px] border border-rose-100 shadow-xl p-4 sm:p-6 md:p-8 lg:p-12 w-full sm:w-[85vw] md:w-[70vw] lg:w-[60vw] max-w-[1200px] min-h-[300px] sm:min-h-[400px] md:min-h-[500px] max-h-[500px] sm:max-h-[550px] md:max-h-[600px] overflow-y-auto">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8 h-full">
           {categories.map((cat) => (
             <Link
               to={cat.href}
               key={cat.id}
               onClick={onNavigate}
-              className="flex items-center gap-3 p-3 rounded-xl border border-rose-100 hover:border-rose-200 hover:shadow-md transition-all"
+              className="flex flex-col items-center justify-center gap-2 sm:gap-3 md:gap-4 p-3 sm:p-4 md:p-6 lg:p-8 rounded-xl border border-rose-100 hover:border-rose-200 hover:shadow-md transition-all"
             >
-              <img src={cat.image} alt={cat.title} className="w-10 h-10 rounded-full object-contain bg-rose-50" />
-              <span className="text-sm font-semibold text-[#FF6F91] hover:text-[#c0424e]">{cat.title}</span>
+              <img src={cat.image} alt={cat.title} className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-20 lg:h-20 rounded-full object-contain bg-rose-50 shrink-0" />
+              <span className="text-xs sm:text-sm md:text-base font-semibold text-[#FF6F91] hover:text-[#c0424e] text-center">{cat.title}</span>
             </Link>
           ))}
         </div>

@@ -5,36 +5,69 @@ import mostLovedBg from '~/assets/most-loved-bg.svg?url';
 import starIcon from '~/assets/Star 1.svg?url';
 
 export default function MostLovedSection({products = []}) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const scrollRef = useRef(null);
+  const trackRef = useRef(null);
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(1);
+  const [productsPerPage, setProductsPerPage] = useState(4);
 
-  const goToSlide = (index) => {
-    setCurrentIndex(index);
+  // Calculate how many products to show per page
+  const getProductsPerPage = () => {
+    if (typeof window !== 'undefined') {
+      if (window.innerWidth < 640) return 1; // Mobile: 1 product
+      if (window.innerWidth < 1024) return 2; // Tablet: 2 products
+      return 4; // Desktop: 4 products
+    }
+    return 4; // Default for SSR
   };
+
+  // Group products into pages based on current productsPerPage
+  const pages = [];
+  for (let i = 0; i < products.length; i += productsPerPage) {
+    pages.push(products.slice(i, i + productsPerPage));
+  }
+
+  useEffect(() => {
+    const updateProductsPerPage = () => {
+      const perPage = getProductsPerPage();
+      setProductsPerPage(perPage);
+      const newTotal = Math.ceil(products.length / perPage);
+      setTotal(newTotal);
+    };
+    
+    updateProductsPerPage();
+    window.addEventListener('resize', updateProductsPerPage);
+    return () => window.removeEventListener('resize', updateProductsPerPage);
+  }, [products.length]);
+
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    
+    const updateTotals = () => {
+      const pageWidth = el.clientWidth; // Use clientWidth (visible container width)
+      const pages = Math.max(1, Math.round(el.scrollWidth / pageWidth));
+      setTotal(pages);
+      setPage(Math.round(el.scrollLeft / pageWidth));
+    };
+    
+    updateTotals();
+    
+    const onScroll = () => {
+      const pageWidth = el.clientWidth;
+      setPage(Math.round(el.scrollLeft / pageWidth));
+    };
+    
+    el.addEventListener('scroll', onScroll, {passive: true});
+    window.addEventListener('resize', updateTotals);
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', updateTotals);
+    };
+  }, [productsPerPage]);
 
   if (!products || products.length === 0) {
     return null;
   }
-
-  // Responsive slides per page
-  const [slidesPerPage, setSlidesPerPage] = useState(4);
-  
-  useEffect(() => {
-    const updateSlidesPerPage = () => {
-      if (window.innerWidth < 640) setSlidesPerPage(1); // mobile
-      else if (window.innerWidth < 1024) setSlidesPerPage(2); // tablet
-      else setSlidesPerPage(4); // desktop
-    };
-    updateSlidesPerPage();
-    window.addEventListener('resize', updateSlidesPerPage);
-    return () => window.removeEventListener('resize', updateSlidesPerPage);
-  }, []);
-
-  const pages = [];
-  for (let i = 0; i < products.length; i += slidesPerPage) {
-    pages.push(products.slice(i, i + slidesPerPage));
-  }
-  const totalSlides = pages.length;
 
   return (
     <>
@@ -87,44 +120,85 @@ export default function MostLovedSection({products = []}) {
             </div>
           </div>
 
-          {/* Product Cards Section - Slideshow per page of 4 (no peeking) */}
-          <div className="flex flex-col items-center">
-            <div ref={scrollRef} className="relative overflow-hidden w-full">
+          {/* Product Cards Section - Horizontal scrollable slider */}
+          <div className="relative overflow-hidden">
+            <style>{`
+              .product-slider::-webkit-scrollbar {
+                display: none;
+              }
+            `}</style>
+            <div 
+              className="relative overflow-hidden mx-auto"
+              style={{
+                width: `${(280 * productsPerPage) + (24 * (productsPerPage - 1))}px`,
+                maxWidth: '100%'
+              }}
+            >
               <div
-                className="flex transition-transform duration-500 ease-in-out"
-                style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+                ref={trackRef}
+                className="product-slider flex gap-6 overflow-x-auto snap-x snap-mandatory"
+                style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}
               >
-                {pages.map((page, pageIndex) => (
-                  <div key={pageIndex} className="min-w-full">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                      {page.map((product, index) => (
-                        <div key={product.id} className="flex justify-center">
+                {pages.map((pageProducts, pageIndex) => {
+                  // Calculate exact page width: (280px card * perPage) + (24px gap * (perPage - 1))
+                  const cardWidth = 280;
+                  const gap = 24;
+                  const pageWidth = (cardWidth * productsPerPage) + (gap * (productsPerPage - 1));
+                  
+                  return (
+                    <div
+                      key={pageIndex}
+                      className="flex-none snap-start flex gap-6"
+                      style={{
+                        width: `${pageWidth}px`,
+                        minWidth: `${pageWidth}px`,
+                        maxWidth: `${pageWidth}px`
+                      }}
+                    >
+                      {pageProducts.map((product, index) => (
+                        <div 
+                          key={product.id} 
+                          className="product-card flex-none flex justify-center"
+                          style={{
+                            width: '280px',
+                            minWidth: '280px',
+                            maxWidth: '280px',
+                            flexShrink: 0
+                          }}
+                        >
                           <ProductItem
                             product={product}
-                            loading={index < 4 ? 'eager' : 'lazy'}
+                            loading={pageIndex === 0 && index < 4 ? 'eager' : 'lazy'}
                           />
                         </div>
                       ))}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
             {/* Dot Navigation */}
             <div className="flex justify-center gap-2 mt-8">
-              {Array.from({length: totalSlides}).map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => goToSlide(index)}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                    currentIndex === index
-                      ? 'bg-pink-500 w-8'
-                      : 'bg-pink-200 hover:bg-pink-300'
-                  }`}
-                  aria-label={`Go to slide ${index + 1}`}
-                />
-              ))}
+              {Array.from({length: total}).map((_, index) => {
+                return (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      const el = trackRef.current;
+                      if (!el) return;
+                      const pageWidth = el.clientWidth;
+                      el.scrollTo({left: index * pageWidth, behavior: 'smooth'});
+                    }}
+                    className={`h-2 rounded-full transition-all ${
+                      index === page 
+                        ? 'w-6 bg-pink-500' 
+                        : 'w-2 bg-pink-200 hover:bg-pink-300'
+                    }`}
+                    aria-label={`Go to slide ${index + 1}`}
+                  />
+                );
+              })}
             </div>
           </div>
         </div>

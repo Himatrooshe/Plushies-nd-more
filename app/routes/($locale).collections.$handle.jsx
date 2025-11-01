@@ -1,5 +1,5 @@
 import {redirect, useLoaderData, Link} from 'react-router';
-import {useRef, useState} from 'react';
+import {useRef, useState, useEffect} from 'react';
 import {useRevealAnimations} from '~/components/useRevealAnimations';
 import {getPaginationVariables, Analytics} from '@shopify/hydrogen';
 import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
@@ -121,6 +121,104 @@ export default function Collection() {
   })();
 
   const productCount = filteredAndSorted.length;
+  const productsGridRef = useRef(null);
+
+  // Responsive product card scaling for mobile
+  useEffect(() => {
+    const updateCardScale = () => {
+      if (!productsGridRef.current || typeof window === 'undefined') return;
+      
+      const cards = productsGridRef.current.querySelectorAll('.collections-handle-product-inner');
+      if (cards.length === 0) return;
+      
+      const gridContainer = productsGridRef.current;
+      const containerWidth = gridContainer.offsetWidth;
+      if (containerWidth === 0) return;
+      
+      if (window.innerWidth < 640) {
+        // Mobile: calculate scale based on available width (2 columns)
+        const gap = 12; // gap-3 = 12px
+        const availableWidthPerCard = (containerWidth - gap) / 2;
+        const scale = Math.min(1, availableWidthPerCard / 280);
+        const scaledHeight = 440 * scale;
+        
+        cards.forEach((card) => {
+          // Scale the card visually
+          card.style.transform = `scale(${scale})`;
+          card.style.transformOrigin = 'top center';
+          card.style.width = '280px';
+          card.style.height = '440px';
+          
+          // Adjust parent wrapper to clip at scaled size
+          const parent = card.closest('.collections-handle-product-wrapper');
+          if (parent) {
+            // Parent is the grid item, get its actual width
+            const gridItemWidth = parent.offsetWidth;
+            const scaledWidth = 280 * scale;
+            
+            // Set wrapper width to scaled size to prevent overflow
+            if (scaledWidth <= gridItemWidth) {
+              parent.style.width = `${scaledWidth}px`;
+              parent.style.maxWidth = `${scaledWidth}px`;
+            }
+            parent.style.height = `${scaledHeight}px`;
+            parent.style.minWidth = '0';
+            parent.style.overflow = 'hidden';
+            parent.style.display = 'flex';
+            parent.style.justifyContent = 'center';
+            parent.style.alignItems = 'flex-start';
+          }
+        });
+      } else if (window.innerWidth < 1240) {
+        // Tablet/Medium Desktop (640-1239px): 2 columns, full size
+        cards.forEach((card) => {
+          card.style.transform = 'none';
+          card.style.height = '440px';
+          card.style.width = '280px';
+          const parent = card.closest('.collections-handle-product-wrapper');
+          if (parent) {
+            parent.style.height = 'auto';
+            parent.style.minWidth = 'auto';
+            parent.style.width = '100%';
+            parent.style.maxWidth = 'none';
+            parent.style.overflow = 'visible';
+          }
+        });
+      } else {
+        // Reset scale on larger screens
+        cards.forEach((card) => {
+          card.style.transform = 'none';
+          card.style.height = '440px';
+          card.style.width = '280px';
+          const parent = card.closest('.collections-handle-product-wrapper');
+          if (parent) {
+            parent.style.height = 'auto';
+            parent.style.minWidth = 'auto';
+            parent.style.width = '100%';
+            parent.style.maxWidth = 'none';
+            parent.style.overflow = 'visible';
+          }
+        });
+      }
+    };
+
+    const timeoutId = setTimeout(updateCardScale, 50);
+    window.addEventListener('resize', updateCardScale);
+    
+    const observer = new ResizeObserver(() => {
+      updateCardScale();
+    });
+    
+    if (productsGridRef.current) {
+      observer.observe(productsGridRef.current);
+    }
+    
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('resize', updateCardScale);
+      observer.disconnect();
+    };
+  }, [filteredAndSorted.length]);
 
   return (
     <div ref={pageRef} className="min-h-screen bg-gray-50">
@@ -150,8 +248,95 @@ export default function Collection() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Left Sidebar */}
-          <div className="lg:col-span-1">
+          {/* Right Main Content - Shows first on mobile/tablet */}
+          <div className="lg:col-span-3 order-1">
+            {/* Toolbar */}
+            <div className="rounded-2xl p-4 sm:p-5 shadow-lg bg-linear-to-br from-rose-50 to-pink-50 border border-rose-100 mb-6" style={{overflow: 'visible'}}>
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="text-xs sm:text-sm font-semibold text-gray-700">
+                  Showing {productCount} products
+                </div>
+                <div className="flex items-center gap-2 relative" style={{overflow: 'visible'}}>
+                  <span className="text-xs text-gray-600">Sort by:</span>
+                  <div style={{position: 'relative', overflow: 'visible', zIndex: 1000}}>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="bg-white/90 border border-rose-200 rounded-xl px-3 py-2 text-sm focus:ring-[#c0424e] focus:border-[#c0424e]"
+                      style={{appearance: 'auto'}}
+                    >
+                      <option value="featured">Featured</option>
+                      <option value="price-low">Price: Low to High</option>
+                      <option value="price-high">Price: High to Low</option>
+                      <option value="newest">Newest</option>
+                      <option value="best-selling">Best Selling</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Products Grid - Responsive */}
+            <style>{`
+              @media (max-width: 639px) {
+                .collections-handle-product-grid {
+                  display: grid !important;
+                  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                  gap: 12px !important;
+                }
+                .collections-handle-product-wrapper {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                }
+              }
+              @media (min-width: 640px) and (max-width: 1239px) {
+                .collections-handle-product-grid {
+                  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                }
+              }
+              @media (min-width: 1240px) {
+                .collections-handle-product-grid {
+                  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+                }
+              }
+            `}</style>
+          <div 
+            ref={productsGridRef}
+            className="collections-handle-product-grid grid grid-cols-2 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6"
+          >
+            {filteredAndSorted.map((product, index) => (
+              <div 
+                key={product.id} 
+                className="flex justify-center items-start collections-handle-product-wrapper"
+                style={{
+                  minWidth: 0,
+                  width: '100%'
+                }}
+              >
+              <div 
+                className="collections-handle-product-inner"
+                style={{
+                  width: '280px',
+                  height: '440px',
+                  margin: '0 auto',
+                  transformOrigin: 'center top',
+                  flexShrink: 0
+                }}
+              >
+                <div className="bg-[#FFDDDD] rounded-[24px] shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-rose-200 reveal-card">
+                  <ProductItem
+                    product={product}
+                    loading={index < 8 ? 'eager' : undefined}
+                  />
+                </div>
+              </div>
+            </div>
+            ))}
+          </div>
+          </div>
+
+          {/* Left Sidebar - Shows below on mobile/tablet */}
+          <div className="lg:col-span-1 order-2">
             <div className="space-y-6 pr-2">
               {/* Shop By Categories */}
               <div className="rounded-2xl p-5 shadow-lg bg-linear-to-br from-rose-50 to-pink-50 border border-rose-100 reveal-panel">
@@ -204,7 +389,7 @@ export default function Collection() {
                       <span className="ml-2 text-sm text-gray-600">Out of stock (0)</span>
                     </label>
                   </div>
-          </div>
+                </div>
 
                 {/* Price Range */}
                 <div>
@@ -229,57 +414,18 @@ export default function Collection() {
               </div>
             </div>
           </div>
-
-          {/* Right Main Content */}
-          <div className="lg:col-span-3">
-            {/* Toolbar */}
-            <div className="rounded-2xl p-4 sm:p-5 shadow-lg bg-linear-to-br from-rose-50 to-pink-50 border border-rose-100 mb-6">
-              <div className="flex items-center justify-between gap-4 flex-wrap">
-                <div className="text-xs sm:text-sm font-semibold text-gray-700">
-                  Showing {productCount} products
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-600">Sort by:</span>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="bg-white/90 border border-rose-200 rounded-xl px-3 py-2 text-sm focus:ring-[#c0424e] focus:border-[#c0424e]"
-                  >
-                    <option value="featured">Featured</option>
-                    <option value="price-low">Price: Low to High</option>
-                    <option value="price-high">Price: High to Low</option>
-                    <option value="newest">Newest</option>
-                    <option value="best-selling">Best Selling</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-        {/* Products Grid (3 per row on md and up) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {filteredAndSorted.map((product, index) => (
-              <div key={product.id} className="bg-[#FFDDDD] rounded-[24px] shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-rose-200 reveal-card">
-                <ProductItem
-                  product={product}
-                  loading={index < 8 ? 'eager' : undefined}
-                />
-              </div>
-            ))}
-          </div>
-          
-          </div>
         </div>
-        </div>
+      </div>
 
-        {/* Analytics */}
-        <Analytics.CollectionView
-          data={{
-            collection: {
-              id: collection.id,
-              handle: collection.handle,
-            },
-          }}
-        />
+      {/* Analytics */}
+      <Analytics.CollectionView
+        data={{
+          collection: {
+            id: collection.id,
+            handle: collection.handle,
+          },
+        }}
+      />
     </div>
   );
 }

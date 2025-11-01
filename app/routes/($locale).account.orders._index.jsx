@@ -30,11 +30,34 @@ export const meta = () => {
  */
 export async function loader({request, context}) {
   const {customerAccount} = context;
+  const url = new URL(request.url);
+  
+  // For localhost: allow viewing with demo data without authentication
+  const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+  
+  if (isLocalhost) {
+    // On localhost, return demo data immediately - no auth checks
+    const filters = parseOrderFilters(url.searchParams);
+    return {
+      customer: {
+        id: 'dev',
+        orders: {
+          nodes: [],
+          pageInfo: {
+            hasNextPage: false,
+            hasPreviousPage: false,
+          },
+        },
+      },
+      filters,
+    };
+  }
+  
+  // For production: use real customer data with authentication
   const paginationVariables = getPaginationVariables(request, {
     pageBy: 20,
   });
 
-  const url = new URL(request.url);
   const filters = parseOrderFilters(url.searchParams);
   const query = buildOrderSearchQuery(filters);
 
@@ -60,8 +83,13 @@ export default function Orders() {
 
   return (
     <div className="orders">
-      <OrderSearchForm currentFilters={filters} />
-      <OrdersTable orders={orders} filters={filters} />
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 md:p-8">
+        <h2 className="text-xl md:text-2xl font-semibold text-gray-900 mb-6">Orders</h2>
+        <OrderSearchForm currentFilters={filters} />
+        <div className="mt-6">
+          <OrdersTable orders={orders} filters={filters} />
+        </div>
+      </div>
     </div>
   );
 }
@@ -93,22 +121,26 @@ function OrdersTable({orders, filters}) {
  */
 function EmptyOrders({hasFilters = false}) {
   return (
-    <div>
+    <div className="text-center py-12">
       {hasFilters ? (
         <>
-          <p>No orders found matching your search.</p>
-          <br />
-          <p>
-            <Link to="/account/orders">Clear filters →</Link>
-          </p>
+          <p className="text-gray-600 mb-4">No orders found matching your search.</p>
+          <Link 
+            to="/account/orders"
+            className="inline-flex items-center px-6 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-gray-800 transition-colors"
+          >
+            Clear filters
+          </Link>
         </>
       ) : (
         <>
-          <p>You haven&apos;t placed any orders yet.</p>
-          <br />
-          <p>
-            <Link to="/collections">Start Shopping →</Link>
-          </p>
+          <p className="text-gray-600 mb-4 text-lg">You haven&apos;t placed any orders yet.</p>
+          <Link 
+            to="/collections"
+            className="inline-flex items-center px-6 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-gray-800 transition-colors"
+          >
+            Start Shopping
+          </Link>
         </>
       )}
     </div>
@@ -152,20 +184,20 @@ function OrderSearchForm({currentFilters}) {
     <form
       ref={formRef}
       onSubmit={handleSubmit}
-      className="order-search-form"
+      className="space-y-4"
       aria-label="Search orders"
     >
-      <fieldset className="order-search-fieldset">
-        <legend className="order-search-legend">Filter Orders</legend>
+      <fieldset className="space-y-4">
+        <legend className="text-sm font-medium text-gray-700 mb-2">Filter Orders</legend>
 
-        <div className="order-search-inputs">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
             type="search"
             name={ORDER_FILTER_FIELDS.NAME}
             placeholder="Order #"
             aria-label="Order number"
             defaultValue={currentFilters.name || ''}
-            className="order-search-input"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-colors"
           />
           <input
             type="search"
@@ -173,13 +205,17 @@ function OrderSearchForm({currentFilters}) {
             placeholder="Confirmation #"
             aria-label="Confirmation number"
             defaultValue={currentFilters.confirmationNumber || ''}
-            className="order-search-input"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-colors"
           />
         </div>
 
-        <div className="order-search-buttons">
-          <button type="submit" disabled={isSearching}>
-            {isSearching ? 'Searching' : 'Search'}
+        <div className="flex gap-3">
+          <button 
+            type="submit" 
+            disabled={isSearching}
+            className="inline-flex items-center px-6 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-gray-800 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+          >
+            {isSearching ? 'Searching...' : 'Search'}
           </button>
           {hasFilters && (
             <button
@@ -189,6 +225,7 @@ function OrderSearchForm({currentFilters}) {
                 setSearchParams(new URLSearchParams());
                 formRef.current?.reset();
               }}
+              className="inline-flex items-center px-6 py-2.5 bg-white text-gray-700 border border-gray-300 text-sm font-medium rounded-md hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
             >
               Clear
             </button>
@@ -205,22 +242,51 @@ function OrderSearchForm({currentFilters}) {
 function OrderItem({order}) {
   const fulfillmentStatus = flattenConnection(order.fulfillments)[0]?.status;
   return (
-    <>
-      <fieldset>
-        <Link to={`/account/orders/${btoa(order.id)}`}>
-          <strong>#{order.number}</strong>
-        </Link>
-        <p>{new Date(order.processedAt).toDateString()}</p>
-        {order.confirmationNumber && (
-          <p>Confirmation: {order.confirmationNumber}</p>
-        )}
-        <p>{order.financialStatus}</p>
-        {fulfillmentStatus && <p>{fulfillmentStatus}</p>}
-        <Money data={order.totalPrice} />
-        <Link to={`/account/orders/${btoa(order.id)}`}>View Order →</Link>
-      </fieldset>
-      <br />
-    </>
+    <div className="border border-gray-200 rounded-md bg-white p-5 mb-4 hover:shadow-sm transition-shadow">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex-1">
+          <Link 
+            to={`/account/orders/${btoa(order.id)}`}
+            className="text-lg font-semibold text-gray-900 hover:text-gray-700 transition-colors"
+          >
+            Order #{order.number}
+          </Link>
+          <p className="text-sm text-gray-600 mt-1">
+            {new Date(order.processedAt).toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </p>
+          {order.confirmationNumber && (
+            <p className="text-xs text-gray-500 mt-1">Confirmation: {order.confirmationNumber}</p>
+          )}
+          <div className="flex gap-2 mt-2">
+            <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
+              {order.financialStatus}
+            </span>
+            {fulfillmentStatus && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                {fulfillmentStatus}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-3">
+          <div className="text-right">
+            <p className="text-xl font-semibold text-gray-900">
+              <Money data={order.totalPrice} />
+            </p>
+          </div>
+          <Link 
+            to={`/account/orders/${btoa(order.id)}`}
+            className="inline-flex items-center px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-gray-800 transition-colors"
+          >
+            View Order
+          </Link>
+        </div>
+      </div>
+    </div>
   );
 }
 

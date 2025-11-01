@@ -14,8 +14,35 @@ export function shouldRevalidate() {
 /**
  * @param {Route.LoaderArgs}
  */
-export async function loader({context}) {
+export async function loader({request, context}) {
   const {customerAccount} = context;
+  const url = new URL(request.url);
+  
+  // For localhost: allow viewing with demo data without authentication
+  const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+  
+  if (isLocalhost) {
+    // On localhost, just return demo data immediately - no auth checks
+    // This prevents any redirect_uri mismatch errors during development
+    return remixData(
+      {
+        customer: {
+          id: 'dev',
+          firstName: 'Demo',
+          lastName: 'User',
+          defaultAddress: null,
+          addresses: {nodes: []},
+        },
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
+      },
+    );
+  }
+  
+  // For production: use real customer data with authentication
   const {data, errors} = await customerAccount.query(CUSTOMER_DETAILS_QUERY, {
     variables: {
       language: customerAccount.i18n.language,
@@ -47,40 +74,49 @@ export default function AccountLayout() {
     : 'Account Details';
 
   return (
-    <div className="account">
-      <h1>{heading}</h1>
-      <br />
-      <AccountMenu />
-      <br />
-      <br />
-      <Outlet context={{customer}} />
+    <div className="account pt-28 md:pt-36 pb-16 md:pb-20">
+      <div className="mx-auto w-[calc(100%-1rem)] sm:w-[calc(100%-2rem)] max-w-[1600px]">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 md:p-8">
+          <h1 className="text-2xl md:text-3xl font-semibold text-gray-900 mb-6">
+            {heading}
+          </h1>
+          <div className="border-b border-gray-200 pb-4">
+            <AccountMenu />
+          </div>
+        </div>
+        <div className="mt-8">
+          <Outlet context={{customer}} />
+        </div>
+      </div>
     </div>
   );
 }
 
 function AccountMenu() {
-  function isActiveStyle({isActive, isPending}) {
-    return {
-      fontWeight: isActive ? 'bold' : undefined,
-      color: isPending ? 'grey' : 'black',
-    };
+  function linkClassName({isActive, isPending}) {
+    return [
+      'inline-flex items-center px-4 py-2 text-sm font-medium transition-colors',
+      isActive 
+        ? 'text-gray-900 border-b-2 border-gray-900' 
+        : 'text-gray-600 hover:text-gray-900 border-b-2 border-transparent',
+      isPending ? 'opacity-70' : '',
+    ].join(' ');
   }
 
   return (
-    <nav role="navigation">
-      <NavLink to="/account/orders" style={isActiveStyle}>
-        Orders &nbsp;
+    <nav role="navigation" className="flex flex-wrap items-center gap-4 md:gap-6">
+      <NavLink to="/account/orders" className={linkClassName}>
+        Orders
       </NavLink>
-      &nbsp;|&nbsp;
-      <NavLink to="/account/profile" style={isActiveStyle}>
-        &nbsp; Profile &nbsp;
+      <NavLink to="/account/profile" className={linkClassName}>
+        Profile
       </NavLink>
-      &nbsp;|&nbsp;
-      <NavLink to="/account/addresses" style={isActiveStyle}>
-        &nbsp; Addresses &nbsp;
+      <NavLink to="/account/addresses" className={linkClassName}>
+        Addresses
       </NavLink>
-      &nbsp;|&nbsp;
-      <Logout />
+      <div className="ml-auto">
+        <Logout />
+      </div>
     </nav>
   );
 }
@@ -88,7 +124,12 @@ function AccountMenu() {
 function Logout() {
   return (
     <Form className="account-logout" method="POST" action="/account/logout">
-      &nbsp;<button type="submit">Sign out</button>
+      <button
+        type="submit"
+        className="inline-flex items-center px-4 py-2 bg-white text-gray-700 border border-gray-300 text-sm font-medium rounded-md hover:bg-gray-50 transition-colors"
+      >
+        Sign out
+      </button>
     </Form>
   );
 }

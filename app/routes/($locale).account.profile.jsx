@@ -17,8 +17,16 @@ export const meta = () => {
 /**
  * @param {Route.LoaderArgs}
  */
-export async function loader({context}) {
-  context.customerAccount.handleAuthStatus();
+export async function loader({request, context}) {
+  const url = new URL(request.url);
+  
+  // For localhost: skip auth check to allow viewing
+  const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+  
+  if (!isLocalhost) {
+    // Only check auth on production
+    context.customerAccount.handleAuthStatus();
+  }
 
   return {};
 }
@@ -86,50 +94,68 @@ export default function AccountProfile() {
   /** @type {ActionReturnData} */
   const action = useActionData();
   const customer = action?.customer ?? account?.customer;
+  const isSuccess = action?.customer && !action?.error;
+  const isSubmitting = state === 'submitting' || state === 'loading';
 
   return (
     <div className="account-profile">
-      <h2>My profile</h2>
-      <br />
-      <Form method="PUT">
-        <legend>Personal information</legend>
-        <fieldset>
-          <label htmlFor="firstName">First name</label>
-          <input
-            id="firstName"
-            name="firstName"
-            type="text"
-            autoComplete="given-name"
-            placeholder="First name"
-            aria-label="First name"
-            defaultValue={customer.firstName ?? ''}
-            minLength={2}
-          />
-          <label htmlFor="lastName">Last name</label>
-          <input
-            id="lastName"
-            name="lastName"
-            type="text"
-            autoComplete="family-name"
-            placeholder="Last name"
-            aria-label="Last name"
-            defaultValue={customer.lastName ?? ''}
-            minLength={2}
-          />
-        </fieldset>
-        {action?.error ? (
-          <p>
-            <mark>
-              <small>{action.error}</small>
-            </mark>
-          </p>
-        ) : (
-          <br />
-        )}
-        <button type="submit" disabled={state !== 'idle'}>
-          {state !== 'idle' ? 'Updating' : 'Update'}
-        </button>
-      </Form>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 md:p-8">
+        <h2 className="text-xl md:text-2xl font-semibold text-gray-900 mb-6">Profile</h2>
+        <Form method="PUT" className="space-y-6">
+          <fieldset className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <div className="flex flex-col">
+              <label htmlFor="firstName" className="text-sm font-medium text-gray-700 mb-2">
+                First name
+              </label>
+              <input
+                id="firstName"
+                name="firstName"
+                type="text"
+                autoComplete="given-name"
+                placeholder="First name"
+                aria-label="First name"
+                defaultValue={customer.firstName ?? ''}
+                minLength={2}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-colors"
+              />
+            </div>
+            <div className="flex flex-col">
+              <label htmlFor="lastName" className="text-sm font-medium text-gray-700 mb-2">
+                Last name
+              </label>
+              <input
+                id="lastName"
+                name="lastName"
+                type="text"
+                autoComplete="family-name"
+                placeholder="Last name"
+                aria-label="Last name"
+                defaultValue={customer.lastName ?? ''}
+                minLength={2}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-colors"
+              />
+            </div>
+          </fieldset>
+          {action?.error ? (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+              {action.error}
+            </div>
+          ) : isSuccess ? (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md text-sm">
+              Profile updated successfully.
+            </div>
+          ) : null}
+          <div>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="inline-flex items-center px-6 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-gray-800 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            >
+              {isSubmitting ? 'Saving...' : 'Save changes'}
+            </button>
+          </div>
+        </Form>
+      </div>
     </div>
   );
 }

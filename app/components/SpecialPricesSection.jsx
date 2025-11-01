@@ -1,35 +1,88 @@
-import {useState, useRef} from 'react';
+import {useState, useRef, useEffect} from 'react';
 import Button from './Button';
 import {ProductItem} from './ProductItem';
 import cuteBg from '~/assets/cute-bg.svg?url';
 import redLoveIcon from '~/assets/red-love.svg?url';
 
 export default function SpecialPricesSection({products = []}) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const scrollRef = useRef(null);
-  const cardWidth = 296; // Card width (280px) + gap (16px) for better calculation
+  const trackRef = useRef(null);
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(1);
+  const [productsPerPage, setProductsPerPage] = useState(4);
 
-  const goToSlide = (index) => {
-    setCurrentIndex(index);
-  };
-
-  if (!products || products.length === 0) {
-    return null;
-  }
-
-  // Responsive slides to show
-  const getSlidesToShow = () => {
+  // Calculate how many products to show per page
+  const getProductsPerPage = () => {
     if (typeof window !== 'undefined') {
-      if (window.innerWidth < 640) return 1; // Mobile: 1 product
-      if (window.innerWidth < 768) return 2; // Small tablet: 2 products
-      if (window.innerWidth < 1024) return 3; // Tablet: 3 products
+      if (window.innerWidth < 640) return 2; // Mobile: 2 products
+      if (window.innerWidth < 1024) return 2; // Tablet: 2 products
       return 4; // Desktop: 4 products
     }
     return 4; // Default for SSR
   };
 
-  const slidesToShow = getSlidesToShow();
-  const totalSlides = Math.ceil(products.length / slidesToShow);
+  // Group products into pages based on current productsPerPage
+  const pages = [];
+  for (let i = 0; i < products.length; i += productsPerPage) {
+    pages.push(products.slice(i, i + productsPerPage));
+  }
+
+  // Get gap between cards based on screen size
+  const getGap = () => {
+    if (typeof window !== 'undefined') {
+      if (window.innerWidth < 640) return 12; // Mobile: smaller gap for 2 products
+      return 24; // Tablet/Desktop: standard gap
+    }
+    return 24; // Default for SSR
+  };
+
+  // Get card width based on screen size
+  const getCardWidth = () => {
+    // ProductItem has fixed 280px width, so we'll use that but adjust container
+    return 280;
+  };
+
+  useEffect(() => {
+    const updateProductsPerPage = () => {
+      const perPage = getProductsPerPage();
+      setProductsPerPage(perPage);
+      const newTotal = Math.ceil(products.length / perPage);
+      setTotal(newTotal);
+    };
+    
+    updateProductsPerPage();
+    window.addEventListener('resize', updateProductsPerPage);
+    return () => window.removeEventListener('resize', updateProductsPerPage);
+  }, [products.length]);
+
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    
+    const updateTotals = () => {
+      const pageWidth = el.clientWidth; // Use clientWidth (visible container width)
+      const pages = Math.max(1, Math.round(el.scrollWidth / pageWidth));
+      setTotal(pages);
+      setPage(Math.round(el.scrollLeft / pageWidth));
+    };
+    
+    updateTotals();
+    
+    const onScroll = () => {
+      const pageWidth = el.clientWidth;
+      setPage(Math.round(el.scrollLeft / pageWidth));
+    };
+    
+    el.addEventListener('scroll', onScroll, {passive: true});
+    window.addEventListener('resize', updateTotals);
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', updateTotals);
+    };
+  }, [productsPerPage]);
+
+  if (!products || products.length === 0) {
+    return null;
+  }
 
   return (
     <section
@@ -85,41 +138,121 @@ export default function SpecialPricesSection({products = []}) {
           </div>
         </div>
 
-        {/* Product Cards Section - Manual Slides */}
-        <div className="flex flex-col items-center">
-          <div
-            ref={scrollRef}
-            className="relative overflow-hidden w-full max-w-sm sm:max-w-2xl md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto"
-          >
-            <div
-              className="flex gap-4 transition-transform duration-500 ease-in-out"
+        {/* Product Cards Section - Horizontal scrollable slider */}
+        <div className="relative overflow-hidden">
+          <style>{`
+            .product-slider::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
+          <div className="relative overflow-hidden">
+            <div 
+              className="relative overflow-hidden mx-auto px-4 sm:px-0"
               style={{
-                transform: `translateX(-${currentIndex * cardWidth * slidesToShow}px)`,
-                willChange: 'transform',
+                width: typeof window !== 'undefined' && window.innerWidth < 640 
+                  ? '100%' 
+                  : `${(280 * productsPerPage) + (24 * (productsPerPage - 1))}px`,
+                maxWidth: '100%'
               }}
             >
-              {products.map((product, index) => (
-                <div key={product.id} className="shrink-0 w-[280px]">
-                  <ProductItem product={product} loading={index < 4 ? 'eager' : 'lazy'} />
-                </div>
-              ))}
+              <div
+                ref={trackRef}
+                className="product-slider flex gap-3 sm:gap-6 overflow-x-auto snap-x snap-mandatory"
+                style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}
+              >
+              {pages.map((pageProducts, pageIndex) => {
+                // Calculate exact page width: (280px card * perPage) + (gap * (perPage - 1))
+                const cardWidth = 280;
+                const gap = typeof window !== 'undefined' && window.innerWidth < 640 ? 12 : 24;
+                // On mobile, calculate based on container width; on larger screens use fixed calculation
+                let pageWidth;
+                if (typeof window !== 'undefined' && window.innerWidth < 640) {
+                  // Mobile: use viewport width minus padding (16px each side = 32px total)
+                  pageWidth = window.innerWidth - 32;
+                } else {
+                  // Tablet/Desktop: fixed width based on cards
+                  pageWidth = (cardWidth * productsPerPage) + (gap * (productsPerPage - 1));
+                }
+                
+                return (
+                  <div
+                    key={pageIndex}
+                    className="flex-none snap-start flex flex-nowrap"
+                    style={{
+                      width: `${pageWidth}px`,
+                      minWidth: `${pageWidth}px`,
+                      maxWidth: `${pageWidth}px`,
+                      gap: `${gap}px`
+                    }}
+                  >
+                    {pageProducts.map((product, index) => {
+                      // Calculate card width - on mobile, scale down to fit 2 cards
+                      const cardWidthForMobile = typeof window !== 'undefined' && window.innerWidth < 640
+                        ? Math.floor((pageWidth - gap) / 2)
+                        : cardWidth;
+                      
+                      return (
+                        <div 
+                          key={product.id} 
+                          className="product-card flex-none"
+                          style={{
+                            width: `${cardWidthForMobile}px`,
+                            minWidth: `${cardWidthForMobile}px`,
+                            maxWidth: `${cardWidthForMobile}px`,
+                            flexShrink: 0
+                          }}
+                        >
+                          {typeof window !== 'undefined' && window.innerWidth < 640 && cardWidthForMobile < 280 ? (
+                            <div 
+                              style={{
+                                width: '280px',
+                                height: '440px',
+                                transform: `scale(${cardWidthForMobile / 280})`,
+                                transformOrigin: 'top left'
+                              }}
+                            >
+                              <ProductItem
+                                product={product}
+                                loading={pageIndex === 0 && index < 4 ? 'eager' : 'lazy'}
+                              />
+                            </div>
+                          ) : (
+                            <ProductItem
+                              product={product}
+                              loading={pageIndex === 0 && index < 4 ? 'eager' : 'lazy'}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+              </div>
             </div>
           </div>
 
           {/* Dot Navigation */}
           <div className="flex justify-center gap-2 mt-8">
-            {Array.from({length: totalSlides}).map((_, index) => (
-              <button
-                key={index}
-                onClick={() => goToSlide(index)}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                  currentIndex === index
-                    ? 'bg-pink-500 w-8'
-                    : 'bg-pink-200 hover:bg-pink-300'
-                }`}
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
+            {Array.from({length: total}).map((_, index) => {
+              return (
+                <button
+                  key={index}
+                  onClick={() => {
+                    const el = trackRef.current;
+                    if (!el) return;
+                    const pageWidth = el.clientWidth;
+                    el.scrollTo({left: index * pageWidth, behavior: 'smooth'});
+                  }}
+                  className={`h-2 rounded-full transition-all ${
+                    index === page 
+                      ? 'w-6 bg-pink-500' 
+                      : 'w-2 bg-pink-200 hover:bg-pink-300'
+                  }`}
+                  aria-label={`Go to slide ${index + 1}`}
+                />
+              );
+            })}
           </div>
         </div>
       </div>
