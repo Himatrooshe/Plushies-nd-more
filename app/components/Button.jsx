@@ -11,7 +11,7 @@ export default function Button({
   className = '',
   type = 'button'
 }) {
-  const baseStyles = "inline-flex items-center justify-center gap-2 sm:gap-3 font-bold transition-all rounded-2xl border-2 relative";
+  const baseStyles = "inline-flex items-center justify-center gap-1.5 sm:gap-2 md:gap-3 font-bold transition-all rounded-2xl border-2 relative";
   
   const variants = {
     primary: "bg-[#ff7380] text-white border-[#ff7380] hover:bg-[#ff5c6c] hover:border-[#ff5c6c] hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl",
@@ -32,15 +32,15 @@ export default function Button({
 
   const buttonContent = (
     <>
-      <span className="tracking-tight capitalize">{children}</span>
+      <span className="tracking-tight capitalize whitespace-nowrap">{children}</span>
       {showArrow && (
-        <div className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 bg-white rounded-full">
+        <div className="flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 bg-white rounded-full flex-shrink-0">
           <svg 
-            width="10" 
-            height="10" 
+            width="8" 
+            height="8"
             viewBox="0 0 24 24" 
             fill="none"
-            className={variant === 'primary' ? 'text-[#ff7380]' : variant === 'halloween' ? 'text-[#6A449E]' : 'text-[#c0424e]'}
+            className={`w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-3 md:h-3 ${variant === 'primary' ? 'text-[#ff7380]' : variant === 'halloween' ? 'text-[#6A449E]' : 'text-[#c0424e]'}`}
           >
             <path 
               d="M7 17L17 7M17 7H7M17 7V17" 

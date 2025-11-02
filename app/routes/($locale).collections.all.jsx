@@ -5,6 +5,10 @@ import {getPaginationVariables, Image} from '@shopify/hydrogen';
 import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
 import {ProductItem} from '~/components/ProductItem';
 import heroBg from '~/assets/hero-bg.svg?url';
+import gsap from 'gsap';
+import {ScrollTrigger} from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 /**
  * @param {Route.LoaderArgs} args
@@ -104,6 +108,53 @@ export default function CollectionsAll() {
   const productsGridRef = useRef(null);
 
   // Count in-stock products (simplified - you might need to filter based on actual availability)
+  const inStockCount = productCount; // Placeholder - should filter actual stock status
+
+  // GSAP animations for product cards - fast and cute
+  useEffect(() => {
+    if (!productsGridRef.current) return;
+
+    const cards = productsGridRef.current.querySelectorAll('.collections-all-product-inner');
+    if (cards.length === 0) return;
+    
+    // Set initial state with cute bounce start
+    cards.forEach(card => {
+      gsap.set(card, {
+        opacity: 0,
+        y: 30,
+        scale: 0.9,
+        rotation: -2
+      });
+    });
+
+    // Animate in with cute bounce effect - faster but smooth
+    gsap.to(cards, {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      rotation: 0,
+      duration: 0.35,
+      ease: 'back.out(1.4)',
+      stagger: {
+        amount: 0.15,
+        from: 'start'
+      },
+      scrollTrigger: {
+        trigger: productsGridRef.current,
+        start: 'top 88%',
+        once: true,
+        toggleActions: 'play none none none'
+      }
+    });
+
+    return () => {
+      ScrollTrigger.getAll().forEach(trigger => {
+        if (trigger.vars?.trigger === productsGridRef.current) {
+          trigger.kill();
+        }
+      });
+    };
+  }, [filteredAndSorted.length, sortBy, inStockOnly, outOfStock, priceRange]);
   
   // Responsive product card scaling for mobile
   useEffect(() => {
@@ -201,7 +252,6 @@ export default function CollectionsAll() {
       observer.disconnect();
     };
   }, [filteredAndSorted.length]);
-  const inStockCount = productCount; // Placeholder - should filter actual stock status
 
   return (
     <div ref={pageRef} className="min-h-screen bg-gray-50">
@@ -229,8 +279,86 @@ export default function CollectionsAll() {
       {/* Main Content with Sidebar and Products */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Right Main Content - Shows first on mobile/tablet */}
-          <div className="lg:col-span-3 order-1">
+          {/* Left Sidebar - Shows below on mobile/tablet */}
+          <div className="lg:col-span-1 order-2 lg:order-1">
+            <div className="space-y-6 pr-2">
+              {/* Shop By Categories */}
+              <div className="rounded-2xl p-5 shadow-lg bg-linear-to-br from-rose-50 to-pink-50 border border-rose-100 reveal-panel">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold text-[#c0424e] uppercase tracking-widest">Shop By Categories</h3>
+                  <span className="text-[11px] px-2 py-1 rounded-full bg-white/70 text-[#c0424e] border border-rose-100">{collectionsList.length}</span>
+                </div>
+                <div className="space-y-2">
+                  {collectionsList.map((collection) => (
+                    <Link
+                      key={collection.id}
+                      to={`/collections/${encodeURIComponent(collection.handle)}`}
+                      prefetch="intent"
+                      className="flex items-center justify-between py-2.5 px-3 rounded-xl transition-colors border text-gray-700 bg-white/60 hover:bg-white border-transparent"
+                    >
+                      <span className="font-medium truncate">{collection.title}</span>
+                      <svg className="w-4 h-4 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/>
+                      </svg>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              {/* Filter by */}
+              <div className="rounded-2xl p-5 shadow-lg bg-linear-to-br from-rose-50 to-pink-50 border border-rose-100 reveal-panel">
+                <h3 className="text-sm font-bold text-[#c0424e] uppercase tracking-widest mb-4">Filter by</h3>
+                {/* Availability */}
+                <div className="mb-6">
+                  <h4 className="text-xs font-semibold text-gray-700 mb-3">Availability</h4>
+                  <div className="space-y-2">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={inStockOnly}
+                        onChange={(e) => setInStockOnly(e.target.checked)}
+                        className="rounded-md border-rose-300 text-[#c0424e] focus:ring-[#c0424e]"
+                      />
+                      <span className="ml-2 text-sm text-gray-600">In stock ({inStockCount})</span>
+                    </label>
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={outOfStock}
+                        onChange={(e) => setOutOfStock(e.target.checked)}
+                        className="rounded-md border-rose-300 text-[#c0424e] focus:ring-[#c0424e]"
+                      />
+                      <span className="ml-2 text-sm text-gray-600">Out of stock (0)</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Price Range */}
+                <div>
+                  <h4 className="text-xs font-semibold text-gray-700 mb-3">Price Range</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="number"
+                      placeholder="$ Min"
+                      value={priceRange.min}
+                      onChange={(e) => setPriceRange({...priceRange, min: e.target.value})}
+                      className="px-3 py-2 border border-rose-200 rounded-lg text-sm bg-white/80 focus:ring-[#c0424e] focus:border-[#c0424e]"
+                    />
+                    <input
+                      type="number"
+                      placeholder="$ Max"
+                      value={priceRange.max}
+                      onChange={(e) => setPriceRange({...priceRange, max: e.target.value})}
+                      className="px-3 py-2 border border-rose-200 rounded-lg text-sm bg-white/80 focus:ring-[#c0424e] focus:border-[#c0424e]"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Main Content - Shows first on mobile/tablet */}
+          <div className="lg:col-span-3 order-1 lg:order-2">
             {/* Toolbar */}
             <div className="rounded-2xl p-4 sm:p-5 shadow-lg bg-linear-to-br from-rose-50 to-pink-50 border border-rose-100 mb-6" style={{overflow: 'visible'}}>
               <div className="flex items-center justify-between flex-wrap gap-4">
@@ -313,84 +441,6 @@ export default function CollectionsAll() {
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-
-          {/* Left Sidebar - Shows below on mobile/tablet */}
-          <div className="lg:col-span-1 order-2">
-            <div className="space-y-6 pr-2">
-              {/* Shop By Categories */}
-              <div className="rounded-2xl p-5 shadow-lg bg-linear-to-br from-rose-50 to-pink-50 border border-rose-100 reveal-panel">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-bold text-[#c0424e] uppercase tracking-widest">Shop By Categories</h3>
-                  <span className="text-[11px] px-2 py-1 rounded-full bg-white/70 text-[#c0424e] border border-rose-100">{collectionsList.length}</span>
-                </div>
-                <div className="space-y-2">
-                  {collectionsList.map((collection) => (
-                    <Link
-                      key={collection.id}
-                      to={`/collections/${encodeURIComponent(collection.handle)}`}
-                      prefetch="intent"
-                      className="flex items-center justify-between py-2.5 px-3 rounded-xl transition-colors border text-gray-700 bg-white/60 hover:bg-white border-transparent"
-                    >
-                      <span className="font-medium truncate">{collection.title}</span>
-                      <svg className="w-4 h-4 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/>
-                      </svg>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-              {/* Filter by */}
-              <div className="rounded-2xl p-5 shadow-lg bg-linear-to-br from-rose-50 to-pink-50 border border-rose-100 reveal-panel">
-                <h3 className="text-sm font-bold text-[#c0424e] uppercase tracking-widest mb-4">Filter by</h3>
-                {/* Availability */}
-                <div className="mb-6">
-                  <h4 className="text-xs font-semibold text-gray-700 mb-3">Availability</h4>
-                  <div className="space-y-2">
-                    <label className="flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={inStockOnly}
-                        onChange={(e) => setInStockOnly(e.target.checked)}
-                        className="rounded-md border-rose-300 text-[#c0424e] focus:ring-[#c0424e]"
-                      />
-                      <span className="ml-2 text-sm text-gray-600">In stock ({inStockCount})</span>
-                    </label>
-                    <label className="flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={outOfStock}
-                        onChange={(e) => setOutOfStock(e.target.checked)}
-                        className="rounded-md border-rose-300 text-[#c0424e] focus:ring-[#c0424e]"
-                      />
-                      <span className="ml-2 text-sm text-gray-600">Out of stock (0)</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Price Range */}
-                <div>
-                  <h4 className="text-xs font-semibold text-gray-700 mb-3">Price Range</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="number"
-                      placeholder="$ Min"
-                      value={priceRange.min}
-                      onChange={(e) => setPriceRange({...priceRange, min: e.target.value})}
-                      className="px-3 py-2 border border-rose-200 rounded-lg text-sm bg-white/80 focus:ring-[#c0424e] focus:border-[#c0424e]"
-                    />
-                    <input
-                      type="number"
-                      placeholder="$ Max"
-                      value={priceRange.max}
-                      onChange={(e) => setPriceRange({...priceRange, max: e.target.value})}
-                      className="px-3 py-2 border border-rose-200 rounded-lg text-sm bg-white/80 focus:ring-[#c0424e] focus:border-[#c0424e]"
-                    />
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
