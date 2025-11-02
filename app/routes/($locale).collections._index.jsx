@@ -4,10 +4,6 @@ import {useRevealAnimations} from '~/components/useRevealAnimations';
 import {getPaginationVariables} from '@shopify/hydrogen';
 import {ProductItem} from '~/components/ProductItem';
 import heroBg from '~/assets/hero-bg.svg?url';
-import gsap from 'gsap';
-import {ScrollTrigger} from 'gsap/ScrollTrigger';
-
-gsap.registerPlugin(ScrollTrigger);
 
 /**
  * @param {Route.LoaderArgs} args
@@ -107,52 +103,6 @@ export default function Collections() {
 
   // Count in-stock products
   const inStockCount = productCount;
-
-  // GSAP animations for product cards - fast and cute
-  useEffect(() => {
-    if (!productsGridRef.current) return;
-
-    const cards = productsGridRef.current.querySelectorAll('.collections-product-inner');
-    if (cards.length === 0) return;
-    
-    // Set initial state with cute bounce start
-    cards.forEach(card => {
-      gsap.set(card, {
-        opacity: 0,
-        y: 30,
-        scale: 0.9,
-        rotation: -2
-      });
-    });
-
-    // Animate in with cute bounce effect - faster but smooth
-    gsap.to(cards, {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      rotation: 0,
-      duration: 0.35,
-      ease: 'back.out(1.4)',
-      stagger: {
-        amount: 0.15,
-        from: 'start'
-      },
-      scrollTrigger: {
-        trigger: productsGridRef.current,
-        start: 'top 88%',
-        once: true,
-        toggleActions: 'play none none none'
-      }
-    });
-
-    return () => {
-      ScrollTrigger.getAll().forEach(trigger => {
-        if (trigger.vars?.trigger === productsGridRef.current) {
-          trigger.kill();
-        }
-      });
-    };
-  }, [filteredAndSorted.length, sortBy, inStockOnly, outOfStock, priceRange]);
 
   // Responsive product card scaling for mobile
   useEffect(() => {
@@ -276,15 +226,15 @@ export default function Collections() {
 
       {/* Main Content with Sidebar and Collections */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8" style={{gridAutoFlow: 'row'}}>
           {/* Left Sidebar - Shows below on mobile/tablet */}
-          <div className="lg:col-span-1 order-2 lg:order-1">
-            <div className="space-y-4 sm:space-y-6 lg:pr-2">
+          <div className="collections-sidebar lg:col-span-1 order-2 lg:order-1 w-full">
+            <div className="space-y-4 sm:space-y-6 w-full">
               {/* Shop By Categories */}
-              <div className="rounded-2xl p-4 sm:p-5 shadow-lg bg-linear-to-br from-rose-50 to-pink-50 border border-rose-100 reveal-panel">
+              <div className="rounded-2xl p-4 sm:p-5 shadow-lg bg-linear-to-br from-rose-50 to-pink-50 border border-rose-100 reveal-panel w-full">
                 <div className="flex items-center justify-between mb-3 sm:mb-4">
                   <h3 className="text-xs sm:text-sm font-bold text-[#c0424e] uppercase tracking-widest">Shop By Categories</h3>
-                  <span className="text-[10px] sm:text-[11px] px-2 py-1 rounded-full bg-white/70 text-[#c0424e] border border-rose-100">{collectionsList.length}</span>
+                  <span className="text-[10px] sm:text-[11px] px-2 py-1 rounded-full bg-white/70 text-[#c0424e] border border-rose-100 shrink-0">{collectionsList.length}</span>
                 </div>
                 <div className="space-y-2">
                   {collectionsList.map((collection) => (
@@ -292,7 +242,7 @@ export default function Collections() {
                       key={collection.id}
                       to={`/collections/${encodeURIComponent(collection.handle)}`}
                       prefetch="intent"
-                      className="flex items-center justify-between py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl transition-colors border text-gray-700 bg-white/60 hover:bg-white border-transparent"
+                      className="flex items-center justify-between py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl transition-colors border text-gray-700 bg-white/60 hover:bg-white border-transparent w-full"
                     >
                       <span className="font-medium truncate text-xs sm:text-sm">{collection.title}</span>
                       <svg className="w-3 h-3 sm:w-4 sm:h-4 opacity-60 shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -304,7 +254,7 @@ export default function Collections() {
               </div>
 
               {/* Filter by */}
-              <div className="rounded-2xl p-4 sm:p-5 shadow-lg bg-linear-to-br from-rose-50 to-pink-50 border border-rose-100 reveal-panel">
+              <div className="rounded-2xl p-4 sm:p-5 shadow-lg bg-linear-to-br from-rose-50 to-pink-50 border border-rose-100 reveal-panel w-full">
                 <h3 className="text-xs sm:text-sm font-bold text-[#c0424e] uppercase tracking-widest mb-3 sm:mb-4">Filter by</h3>
                 {/* Availability */}
                 <div className="mb-4 sm:mb-6">
@@ -406,6 +356,32 @@ export default function Collections() {
                   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
                 }
               }
+              /* Ensure sidebar is visible on all screen sizes */
+              @media (max-width: 1023px) {
+                .collections-sidebar {
+                  display: block !important;
+                  visibility: visible !important;
+                  opacity: 1 !important;
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  min-height: auto !important;
+                  overflow: visible !important;
+                  position: relative !important;
+                  margin-top: 1.5rem !important;
+                  padding-top: 0 !important;
+                }
+                .collections-sidebar > * {
+                  display: block !important;
+                  visibility: visible !important;
+                }
+                .collections-sidebar .reveal-panel {
+                  opacity: 1 !important;
+                  visibility: visible !important;
+                  transform: none !important;
+                  animation: none !important;
+                  display: block !important;
+                }
+              }
             `}</style>
             <div 
               ref={productsGridRef}
@@ -421,7 +397,7 @@ export default function Collections() {
                   }}
                 >
                   <div 
-                    className="collections-product-inner"
+                    className="collections-product-inner reveal-card"
                     style={{
                       width: '280px',
                       height: '440px',

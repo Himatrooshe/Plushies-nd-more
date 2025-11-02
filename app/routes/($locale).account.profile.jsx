@@ -18,16 +18,7 @@ export const meta = () => {
  * @param {Route.LoaderArgs}
  */
 export async function loader({request, context}) {
-  const url = new URL(request.url);
-  
-  // For localhost: skip auth check to allow viewing
-  const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
-  
-  if (!isLocalhost) {
-    // Only check auth on production
-    context.customerAccount.handleAuthStatus();
-  }
-
+  context.customerAccount.handleAuthStatus();
   return {};
 }
 

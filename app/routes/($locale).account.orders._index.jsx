@@ -30,34 +30,12 @@ export const meta = () => {
  */
 export async function loader({request, context}) {
   const {customerAccount} = context;
-  const url = new URL(request.url);
   
-  // For localhost: allow viewing with demo data without authentication
-  const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
-  
-  if (isLocalhost) {
-    // On localhost, return demo data immediately - no auth checks
-    const filters = parseOrderFilters(url.searchParams);
-    return {
-      customer: {
-        id: 'dev',
-        orders: {
-          nodes: [],
-          pageInfo: {
-            hasNextPage: false,
-            hasPreviousPage: false,
-          },
-        },
-      },
-      filters,
-    };
-  }
-  
-  // For production: use real customer data with authentication
   const paginationVariables = getPaginationVariables(request, {
     pageBy: 20,
   });
 
+  const url = new URL(request.url);
   const filters = parseOrderFilters(url.searchParams);
   const query = buildOrderSearchQuery(filters);
 

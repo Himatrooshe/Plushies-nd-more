@@ -16,33 +16,7 @@ export function shouldRevalidate() {
  */
 export async function loader({request, context}) {
   const {customerAccount} = context;
-  const url = new URL(request.url);
   
-  // For localhost: allow viewing with demo data without authentication
-  const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
-  
-  if (isLocalhost) {
-    // On localhost, just return demo data immediately - no auth checks
-    // This prevents any redirect_uri mismatch errors during development
-    return remixData(
-      {
-        customer: {
-          id: 'dev',
-          firstName: 'Demo',
-          lastName: 'User',
-          defaultAddress: null,
-          addresses: {nodes: []},
-        },
-      },
-      {
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-        },
-      },
-    );
-  }
-  
-  // For production: use real customer data with authentication
   const {data, errors} = await customerAccount.query(CUSTOMER_DETAILS_QUERY, {
     variables: {
       language: customerAccount.i18n.language,
