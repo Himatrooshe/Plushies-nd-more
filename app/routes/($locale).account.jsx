@@ -14,7 +14,7 @@ export function shouldRevalidate() {
 /**
  * @param {Route.LoaderArgs}
  */
-export async function loader({request, context}) {
+export async function loader({context}) {
   const {customerAccount} = context;
   
   const {data, errors} = await customerAccount.query(CUSTOMER_DETAILS_QUERY, {
@@ -27,14 +27,7 @@ export async function loader({request, context}) {
     throw new Error('Customer not found');
   }
 
-  return remixData(
-    {customer: data.customer},
-    {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-      },
-    },
-  );
+  return remixData({customer: data.customer});
 }
 
 export default function AccountLayout() {

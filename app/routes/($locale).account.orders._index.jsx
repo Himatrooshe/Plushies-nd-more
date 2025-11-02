@@ -30,13 +30,11 @@ export const meta = () => {
  */
 export async function loader({request, context}) {
   const {customerAccount} = context;
-  
   const paginationVariables = getPaginationVariables(request, {
     pageBy: 20,
   });
 
-  const url = new URL(request.url);
-  const filters = parseOrderFilters(url.searchParams);
+  const filters = parseOrderFilters(new URL(request.url).searchParams);
   const query = buildOrderSearchQuery(filters);
 
   const {data, errors} = await customerAccount.query(CUSTOMER_ORDERS_QUERY, {
