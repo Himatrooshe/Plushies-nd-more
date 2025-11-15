@@ -17,10 +17,10 @@ export default function HalloweenMostLovedSection({products = []}) {
 
   // Responsive slides to show - only called in useEffect
   const getSlidesToShow = () => {
-    if (window.innerWidth < 640) return 1; // Mobile: 1 product
-    if (window.innerWidth < 768) return 2; // Small tablet: 2 products
-    if (window.innerWidth < 1024) return 3; // Tablet: 3 products
-    return 4; // Desktop: 4 products
+      if (window.innerWidth < 640) return 1; // Mobile: 1 product
+      if (window.innerWidth < 768) return 2; // Small tablet: 2 products
+      if (window.innerWidth < 1024) return 3; // Tablet: 3 products
+      return 4; // Desktop: 4 products
   };
 
   // Mark as hydrated after first render

@@ -13,9 +13,9 @@ export default function MostLovedSection({products = []}) {
 
   // Calculate how many products to show per page - only called in useEffect
   const getProductsPerPage = () => {
-    if (window.innerWidth < 640) return 1; // Mobile: 1 product
-    if (window.innerWidth < 1024) return 2; // Tablet: 2 products
-    return 4; // Desktop: 4 products
+      if (window.innerWidth < 640) return 1; // Mobile: 1 product
+      if (window.innerWidth < 1024) return 2; // Tablet: 2 products
+      return 4; // Desktop: 4 products
   };
 
   // Group products into pages based on current productsPerPage
@@ -243,8 +243,8 @@ export default function MostLovedSection({products = []}) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
+            </div>
           </div>
-        </div>
         </div>
       </section>
 
