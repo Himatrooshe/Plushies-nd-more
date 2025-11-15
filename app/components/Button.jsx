@@ -34,7 +34,7 @@ export default function Button({
     <>
       <span className="tracking-tight capitalize whitespace-nowrap">{children}</span>
       {showArrow && (
-        <div className="flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 bg-white rounded-full flex-shrink-0">
+        <div className="flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 bg-white rounded-full">
           <svg 
             width="8" 
             height="8"

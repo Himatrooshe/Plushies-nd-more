@@ -9,15 +9,13 @@ export default function SpecialPricesSection({products = []}) {
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(1);
   const [productsPerPage, setProductsPerPage] = useState(4);
+  const [isHydrated, setIsHydrated] = useState(false);
 
-  // Calculate how many products to show per page
+  // Calculate how many products to show per page - only called in useEffect
   const getProductsPerPage = () => {
-    if (typeof window !== 'undefined') {
-      if (window.innerWidth < 640) return 2; // Mobile: 2 products
-      if (window.innerWidth < 1024) return 2; // Tablet: 2 products
-      return 4; // Desktop: 4 products
-    }
-    return 4; // Default for SSR
+    if (window.innerWidth < 640) return 2; // Mobile: 2 products
+    if (window.innerWidth < 1024) return 2; // Tablet: 2 products
+    return 4; // Desktop: 4 products
   };
 
   // Group products into pages based on current productsPerPage
@@ -26,22 +24,14 @@ export default function SpecialPricesSection({products = []}) {
     pages.push(products.slice(i, i + productsPerPage));
   }
 
-  // Get gap between cards based on screen size
-  const getGap = () => {
-    if (typeof window !== 'undefined') {
-      if (window.innerWidth < 640) return 12; // Mobile: smaller gap for 2 products
-      return 24; // Tablet/Desktop: standard gap
-    }
-    return 24; // Default for SSR
-  };
-
-  // Get card width based on screen size
-  const getCardWidth = () => {
-    // ProductItem has fixed 280px width, so we'll use that but adjust container
-    return 280;
-  };
+  // Mark as hydrated after first render
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   useEffect(() => {
+    if (!isHydrated) return;
+    
     const updateProductsPerPage = () => {
       const perPage = getProductsPerPage();
       setProductsPerPage(perPage);
@@ -52,7 +42,7 @@ export default function SpecialPricesSection({products = []}) {
     updateProductsPerPage();
     window.addEventListener('resize', updateProductsPerPage);
     return () => window.removeEventListener('resize', updateProductsPerPage);
-  }, [products.length]);
+  }, [products.length, isHydrated]);
 
   useEffect(() => {
     const el = trackRef.current;
@@ -149,9 +139,7 @@ export default function SpecialPricesSection({products = []}) {
             <div 
               className="relative overflow-hidden mx-auto px-4 sm:px-0"
               style={{
-                width: typeof window !== 'undefined' && window.innerWidth < 640 
-                  ? '100%' 
-                  : `${(280 * productsPerPage) + (24 * (productsPerPage - 1))}px`,
+                width: `${(280 * productsPerPage) + (24 * (productsPerPage - 1))}px`,
                 maxWidth: '100%'
               }}
             >
@@ -163,16 +151,8 @@ export default function SpecialPricesSection({products = []}) {
               {pages.map((pageProducts, pageIndex) => {
                 // Calculate exact page width: (280px card * perPage) + (gap * (perPage - 1))
                 const cardWidth = 280;
-                const gap = typeof window !== 'undefined' && window.innerWidth < 640 ? 12 : 24;
-                // On mobile, calculate based on container width; on larger screens use fixed calculation
-                let pageWidth;
-                if (typeof window !== 'undefined' && window.innerWidth < 640) {
-                  // Mobile: use viewport width minus padding (16px each side = 32px total)
-                  pageWidth = window.innerWidth - 32;
-                } else {
-                  // Tablet/Desktop: fixed width based on cards
-                  pageWidth = (cardWidth * productsPerPage) + (gap * (productsPerPage - 1));
-                }
+                const gap = 24;
+                const pageWidth = (cardWidth * productsPerPage) + (gap * (productsPerPage - 1));
                 
                 return (
                   <div
@@ -186,42 +166,21 @@ export default function SpecialPricesSection({products = []}) {
                     }}
                   >
                     {pageProducts.map((product, index) => {
-                      // Calculate card width - on mobile, scale down to fit 2 cards
-                      const cardWidthForMobile = typeof window !== 'undefined' && window.innerWidth < 640
-                        ? Math.floor((pageWidth - gap) / 2)
-                        : cardWidth;
-                      
                       return (
                         <div 
                           key={product.id} 
                           className="product-card flex-none"
                           style={{
-                            width: `${cardWidthForMobile}px`,
-                            minWidth: `${cardWidthForMobile}px`,
-                            maxWidth: `${cardWidthForMobile}px`,
+                            width: `${cardWidth}px`,
+                            minWidth: `${cardWidth}px`,
+                            maxWidth: `${cardWidth}px`,
                             flexShrink: 0
                           }}
                         >
-                          {typeof window !== 'undefined' && window.innerWidth < 640 && cardWidthForMobile < 280 ? (
-                            <div 
-                              style={{
-                                width: '280px',
-                                height: '440px',
-                                transform: `scale(${cardWidthForMobile / 280})`,
-                                transformOrigin: 'top left'
-                              }}
-                            >
-                              <ProductItem
-                                product={product}
-                                loading={pageIndex === 0 && index < 4 ? 'eager' : 'lazy'}
-                              />
-                            </div>
-                          ) : (
-                            <ProductItem
-                              product={product}
-                              loading={pageIndex === 0 && index < 4 ? 'eager' : 'lazy'}
-                            />
-                          )}
+                          <ProductItem
+                            product={product}
+                            loading={pageIndex === 0 && index < 4 ? 'eager' : 'lazy'}
+                          />
                         </div>
                       );
                     })}
@@ -232,27 +191,66 @@ export default function SpecialPricesSection({products = []}) {
             </div>
           </div>
 
-          {/* Dot Navigation */}
-          <div className="flex justify-center gap-2 mt-8">
-            {Array.from({length: total}).map((_, index) => {
-              return (
-                <button
-                  key={index}
-                  onClick={() => {
-                    const el = trackRef.current;
-                    if (!el) return;
-                    const pageWidth = el.clientWidth;
-                    el.scrollTo({left: index * pageWidth, behavior: 'smooth'});
-                  }}
-                  className={`h-2 rounded-full transition-all ${
-                    index === page 
-                      ? 'w-6 bg-pink-500' 
-                      : 'w-2 bg-pink-200 hover:bg-pink-300'
-                  }`}
-                  aria-label={`Go to slide ${index + 1}`}
-                />
-              );
-            })}
+          {/* Navigation Controls */}
+          <div className="flex items-center justify-center gap-4 mt-8">
+            {/* Left Arrow */}
+            <button
+              onClick={() => {
+                const el = trackRef.current;
+                if (!el) return;
+                const pageWidth = el.clientWidth;
+                const newPage = Math.max(0, page - 1);
+                el.scrollTo({left: newPage * pageWidth, behavior: 'smooth'});
+              }}
+              disabled={page === 0}
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-md hover:shadow-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label="Previous page"
+            >
+              <svg className="w-5 h-5 text-[#c0424e]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+
+            {/* Dot Navigation */}
+            <div className="flex gap-2">
+              {Array.from({length: total}).map((_, index) => {
+                return (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      const el = trackRef.current;
+                      if (!el) return;
+                      const pageWidth = el.clientWidth;
+                      el.scrollTo({left: index * pageWidth, behavior: 'smooth'});
+                    }}
+                    className={`h-2 rounded-full transition-all ${
+                      index === page 
+                        ? 'w-6 bg-pink-500' 
+                        : 'w-2 bg-pink-200 hover:bg-pink-300'
+                    }`}
+                    aria-label={`Go to slide ${index + 1}`}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Right Arrow */}
+            <button
+              onClick={() => {
+                const el = trackRef.current;
+                if (!el) return;
+                const pageWidth = el.clientWidth;
+                const newPage = Math.min(total - 1, page + 1);
+                el.scrollTo({left: newPage * pageWidth, behavior: 'smooth'});
+              }}
+              disabled={page === total - 1}
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-md hover:shadow-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label="Next page"
+            >
+              <svg className="w-5 h-5 text-[#c0424e]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>

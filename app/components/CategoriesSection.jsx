@@ -73,7 +73,7 @@ const CategoryCard = ({ category, isMobile = false }) => (
   <Link
     key={category.id}
     to={category.href}
-    className={`group flex flex-col items-center cursor-pointer w-full ${isMobile ? 'flex-shrink-0' : ''}`}
+    className={`group flex flex-col items-center cursor-pointer w-full ${isMobile ? 'shrink-0' : ''}`}
   >
     {/* Category Image Container */}
     <div className={`relative mb-2 sm:mb-3 md:mb-4 ${
@@ -114,7 +114,7 @@ export default function CategoriesSection() {
 
   useEffect(() => {
     const slider = sliderRef.current;
-    if (!slider || typeof window === 'undefined') return;
+    if (!slider) return;
 
     const updatePage = () => {
       const containerWidth = slider.clientWidth;

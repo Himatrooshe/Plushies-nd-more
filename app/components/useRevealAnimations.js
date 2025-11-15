@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useState} from 'react';
 import gsap from 'gsap';
 import {ScrollTrigger} from 'gsap/ScrollTrigger';
 
@@ -11,7 +11,16 @@ gsap.registerPlugin(ScrollTrigger);
  *  - "reveal-panel" for sidebar cards/panels
  */
 export function useRevealAnimations(containerRef) {
+  const [isMounted, setIsMounted] = useState(false);
+
   useEffect(() => {
+    // Ensure component is fully mounted before initializing animations
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
+
     const root = containerRef?.current || document;
 
     // GSAP context to auto-cleanup
@@ -50,7 +59,7 @@ export function useRevealAnimations(containerRef) {
     }, root);
 
     return () => ctx.revert();
-  }, [containerRef]);
+  }, [containerRef, isMounted]);
 }
 
 

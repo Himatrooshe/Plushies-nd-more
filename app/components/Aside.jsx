@@ -41,16 +41,17 @@ export function Aside({children, heading, type}) {
       aria-modal
       className={`overlay ${expanded ? 'expanded' : ''}`}
       role="dialog"
+      data-lenis-prevent
     >
       <button className="close-outside" onClick={close} />
-      <aside>
+      <aside data-lenis-prevent>
         <header>
           <h3>{heading}</h3>
           <button className="close reset" onClick={close} aria-label="Close">
             &times;
           </button>
         </header>
-        <main>{children}</main>
+        <main data-lenis-prevent>{children}</main>
       </aside>
     </div>
   );

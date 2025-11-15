@@ -1,4 +1,4 @@
-import {useState, useRef} from 'react';
+import {useState, useRef, useEffect} from 'react';
 import Button from './Button';
 import {ProductItem} from './ProductItem';
 import lovedBg from '~/assets/loved-bg.svg?url';
@@ -6,6 +6,8 @@ import starIcon from '~/assets/Star 1.svg?url';
 
 export default function HalloweenMostLovedSection({products = []}) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [slidesToShow, setSlidesToShow] = useState(4); // Default for SSR
+  const [isHydrated, setIsHydrated] = useState(false);
   const scrollRef = useRef(null);
   const cardWidth = 296; // Card width (280px) + gap (16px) for better calculation
 
@@ -13,22 +15,35 @@ export default function HalloweenMostLovedSection({products = []}) {
     setCurrentIndex(index);
   };
 
+  // Responsive slides to show - only called in useEffect
+  const getSlidesToShow = () => {
+    if (window.innerWidth < 640) return 1; // Mobile: 1 product
+    if (window.innerWidth < 768) return 2; // Small tablet: 2 products
+    if (window.innerWidth < 1024) return 3; // Tablet: 3 products
+    return 4; // Desktop: 4 products
+  };
+
+  // Mark as hydrated after first render
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    
+    const updateSlidesToShow = () => {
+      setSlidesToShow(getSlidesToShow());
+    };
+
+    updateSlidesToShow();
+    window.addEventListener('resize', updateSlidesToShow);
+    return () => window.removeEventListener('resize', updateSlidesToShow);
+  }, [isHydrated]);
+
   if (!products || products.length === 0) {
     return null;
   }
 
-  // Responsive slides to show
-  const getSlidesToShow = () => {
-    if (typeof window !== 'undefined') {
-      if (window.innerWidth < 640) return 1; // Mobile: 1 product
-      if (window.innerWidth < 768) return 2; // Small tablet: 2 products
-      if (window.innerWidth < 1024) return 3; // Tablet: 3 products
-      return 4; // Desktop: 4 products
-    }
-    return 4; // Default for SSR
-  };
-
-  const slidesToShow = getSlidesToShow();
   const totalSlides = Math.ceil(products.length / slidesToShow);
 
   return (

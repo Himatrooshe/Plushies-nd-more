@@ -22,7 +22,7 @@ export function CartMain({layout, cart: originalCart}) {
   const cartHasItems = cart?.totalQuantity ? cart.totalQuantity > 0 : false;
 
   return (
-    <div className={className}>
+    <div className={className} data-lenis-prevent>
       <CartEmpty hidden={linesCount} layout={layout} />
       <div className="cart-details">
         <div aria-labelledby="cart-lines">

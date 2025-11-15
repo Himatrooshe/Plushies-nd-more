@@ -7,7 +7,7 @@ export default function NewArrivalsSection({products = []}) {
 
   useEffect(() => {
     const updateCardScale = () => {
-      if (!gridRef.current || typeof window === 'undefined') return;
+      if (!gridRef.current) return;
       
       const cards = gridRef.current.querySelectorAll('.responsive-product-card > div');
       if (cards.length === 0) return;

@@ -135,7 +135,6 @@ export function Footer({footer: footerPromise, header, publicStoreDomain}) {
                         Cart
                       </Link>
                     </li>
-                    <li>
                       <Suspense>
                         <Await resolve={footerPromise}>
                           {(footer) => (
@@ -147,7 +146,6 @@ export function Footer({footer: footerPromise, header, publicStoreDomain}) {
                           )}
                         </Await>
                       </Suspense>
-                    </li>
                   </ul>
                 </div>
 

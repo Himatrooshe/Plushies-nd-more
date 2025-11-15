@@ -9,15 +9,13 @@ export default function MostLovedSection({products = []}) {
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(1);
   const [productsPerPage, setProductsPerPage] = useState(4);
+  const [isHydrated, setIsHydrated] = useState(false);
 
-  // Calculate how many products to show per page
+  // Calculate how many products to show per page - only called in useEffect
   const getProductsPerPage = () => {
-    if (typeof window !== 'undefined') {
-      if (window.innerWidth < 640) return 1; // Mobile: 1 product
-      if (window.innerWidth < 1024) return 2; // Tablet: 2 products
-      return 4; // Desktop: 4 products
-    }
-    return 4; // Default for SSR
+    if (window.innerWidth < 640) return 1; // Mobile: 1 product
+    if (window.innerWidth < 1024) return 2; // Tablet: 2 products
+    return 4; // Desktop: 4 products
   };
 
   // Group products into pages based on current productsPerPage
@@ -26,7 +24,14 @@ export default function MostLovedSection({products = []}) {
     pages.push(products.slice(i, i + productsPerPage));
   }
 
+  // Mark as hydrated after first render
   useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    
     const updateProductsPerPage = () => {
       const perPage = getProductsPerPage();
       setProductsPerPage(perPage);
@@ -37,7 +42,7 @@ export default function MostLovedSection({products = []}) {
     updateProductsPerPage();
     window.addEventListener('resize', updateProductsPerPage);
     return () => window.removeEventListener('resize', updateProductsPerPage);
-  }, [products.length]);
+  }, [products.length, isHydrated]);
 
   useEffect(() => {
     const el = trackRef.current;
@@ -178,8 +183,28 @@ export default function MostLovedSection({products = []}) {
               </div>
             </div>
 
+          {/* Navigation Controls */}
+          <div className="flex items-center justify-center gap-4 mt-8">
+            {/* Left Arrow */}
+            <button
+              onClick={() => {
+                const el = trackRef.current;
+                if (!el) return;
+                const pageWidth = el.clientWidth;
+                const newPage = Math.max(0, page - 1);
+                el.scrollTo({left: newPage * pageWidth, behavior: 'smooth'});
+              }}
+              disabled={page === 0}
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-md hover:shadow-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label="Previous page"
+            >
+              <svg className="w-5 h-5 text-[#c0424e]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+
             {/* Dot Navigation */}
-            <div className="flex justify-center gap-2 mt-8">
+            <div className="flex gap-2">
               {Array.from({length: total}).map((_, index) => {
                 return (
                   <button
@@ -200,7 +225,26 @@ export default function MostLovedSection({products = []}) {
                 );
               })}
             </div>
+
+            {/* Right Arrow */}
+            <button
+              onClick={() => {
+                const el = trackRef.current;
+                if (!el) return;
+                const pageWidth = el.clientWidth;
+                const newPage = Math.min(total - 1, page + 1);
+                el.scrollTo({left: newPage * pageWidth, behavior: 'smooth'});
+              }}
+              disabled={page === total - 1}
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-md hover:shadow-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label="Next page"
+            >
+              <svg className="w-5 h-5 text-[#c0424e]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
           </div>
+        </div>
         </div>
       </section>
 
