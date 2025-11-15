@@ -101,6 +101,16 @@ export async function loader(args) {
 
   const {storefront, env} = args.context;
 
+  const consent = {
+    checkoutDomain: env.PUBLIC_CHECKOUT_DOMAIN,
+    storefrontAccessToken: env.PUBLIC_STOREFRONT_API_TOKEN,
+    // Only enable privacy banner if checkout domain is properly configured
+    withPrivacyBanner: Boolean(env.PUBLIC_CHECKOUT_DOMAIN),
+    // localize the privacy banner
+    country: args.context.storefront.i18n.country,
+    language: args.context.storefront.i18n.language,
+  };
+
   return {
     ...deferredData,
     ...criticalData,
@@ -109,14 +119,7 @@ export async function loader(args) {
       storefront,
       publicStorefrontId: env.PUBLIC_STOREFRONT_ID,
     }),
-    consent: {
-      checkoutDomain: env.PUBLIC_CHECKOUT_DOMAIN,
-      storefrontAccessToken: env.PUBLIC_STOREFRONT_API_TOKEN,
-      withPrivacyBanner: true,
-      // localize the privacy banner
-      country: args.context.storefront.i18n.country,
-      language: args.context.storefront.i18n.language,
-    },
+    consent,
   };
 }
 
@@ -199,6 +202,24 @@ export function Layout({children}) {
 export default function App() {
   /** @type {RootLoader} */
   const data = useRouteLoaderData('root');
+
+  // Prevent Shopify object conflicts
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Make Shopify object configurable to prevent conflicts
+      if (window.Shopify) {
+        try {
+          Object.defineProperty(window, 'Shopify', {
+            value: window.Shopify,
+            writable: true,
+            configurable: true,
+          });
+        } catch (e) {
+          // Shopify object already exists, this is fine
+        }
+      }
+    }
+  }, []);
 
   if (!data) {
     return <Outlet />;
